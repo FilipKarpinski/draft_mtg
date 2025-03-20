@@ -4,25 +4,6 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 
-class UserBase(BaseModel):
-    username: str
-    email: str
-    is_active: bool = True
-    is_admin: bool = False
-
-
-class UserCreate(UserBase):
-    password: str
-
-
-class UserSchema(UserBase):
-    id: int
-    hashed_password: str
-
-    class Config:
-        from_attributes = True
-
-
 class PlayerBase(BaseModel):
     name: str
     profile_picture_path: Optional[str] = None
@@ -40,7 +21,7 @@ class PlayerSchema(PlayerBase):
 
 
 class DraftBase(BaseModel):
-    player_id: int
+    name: str
     draft_date: datetime
 
 
@@ -48,8 +29,14 @@ class DraftCreate(DraftBase):
     pass
 
 
-class DraftSchema(DraftBase):
+class DraftSchemaBase(DraftBase):
     id: int
+
+    class Config:
+        from_attributes = True
+
+
+class DraftSchema(DraftSchemaBase):
     matches: List["MatchSchema"] = []
 
     class Config:
@@ -70,7 +57,7 @@ class MatchCreate(MatchBase):
 
 class MatchSchema(MatchBase):
     id: int
-    draft: DraftSchema
+    draft: DraftSchemaBase
     player_1: PlayerSchema
     player_2: PlayerSchema
 

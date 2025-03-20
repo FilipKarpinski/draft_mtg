@@ -3,6 +3,8 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.auth.models import User
+from app.auth.utils import get_current_active_user
 from app.core.models import Draft
 from app.core.schemas import DraftCreate, DraftSchema
 from app.db.database import get_db
@@ -11,9 +13,11 @@ router = APIRouter(prefix="/drafts", tags=["drafts"])
 
 
 @router.post("/")
-def create_draft(draft: DraftCreate, db: Session = Depends(get_db)) -> DraftSchema:
+def create_draft(
+    draft: DraftCreate, db: Session = Depends(get_db), _: User = Depends(get_current_active_user)
+) -> DraftSchema:
     db_draft = Draft(
-        player_id=draft.player_id,
+        name=draft.name,
         draft_date=draft.draft_date,
     )
     db.add(db_draft)
@@ -37,7 +41,12 @@ def list_drafts(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)) 
 
 
 @router.put("/{draft_id}")
-def update_draft(draft_id: int, draft: DraftCreate, db: Session = Depends(get_db)) -> DraftSchema:
+def update_draft(
+    draft_id: int,
+    draft: DraftCreate,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_active_user),
+) -> DraftSchema:
     db_draft = db.query(Draft).filter(Draft.id == draft_id).first()
     if db_draft is None:
         raise HTTPException(status_code=404, detail="Draft not found")
@@ -51,7 +60,9 @@ def update_draft(draft_id: int, draft: DraftCreate, db: Session = Depends(get_db
 
 
 @router.delete("/{draft_id}")
-def delete_draft(draft_id: int, db: Session = Depends(get_db)) -> dict[str, str]:
+def delete_draft(
+    draft_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_active_user)
+) -> dict[str, str]:
     db_draft = db.query(Draft).filter(Draft.id == draft_id).first()
     if db_draft is None:
         raise HTTPException(status_code=404, detail="Draft not found")

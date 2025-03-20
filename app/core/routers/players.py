@@ -3,6 +3,8 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.auth.models import User
+from app.auth.utils import get_current_active_user
 from app.core.models import Player
 from app.core.schemas import PlayerCreate, PlayerSchema
 from app.db.database import get_db
@@ -11,7 +13,9 @@ router = APIRouter(prefix="/players", tags=["players"])
 
 
 @router.post("/")
-def create_player(player: PlayerCreate, db: Session = Depends(get_db)) -> PlayerSchema:
+def create_player(
+    player: PlayerCreate, db: Session = Depends(get_db), _: User = Depends(get_current_active_user)
+) -> PlayerSchema:
     db_player = Player(name=player.name, profile_picture_path=player.profile_picture_path or "")
     db.add(db_player)
     db.commit()
@@ -34,7 +38,12 @@ def get_player(player_id: int, db: Session = Depends(get_db)) -> PlayerSchema:
 
 
 @router.put("/{player_id}")
-def update_player(player_id: int, player: PlayerCreate, db: Session = Depends(get_db)) -> PlayerSchema:
+def update_player(
+    player_id: int,
+    player: PlayerCreate,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_active_user),
+) -> PlayerSchema:
     db_player = db.query(Player).filter(Player.id == player_id).first()
     if db_player is None:
         raise HTTPException(status_code=404, detail="Player not found")
@@ -48,7 +57,9 @@ def update_player(player_id: int, player: PlayerCreate, db: Session = Depends(ge
 
 
 @router.delete("/{player_id}")
-def delete_player(player_id: int, db: Session = Depends(get_db)) -> dict[str, str]:
+def delete_player(
+    player_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_active_user)
+) -> dict[str, str]:
     db_player = db.query(Player).filter(Player.id == player_id).first()
     if db_player is None:
         raise HTTPException(status_code=404, detail="Player not found")

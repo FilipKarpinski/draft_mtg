@@ -10,10 +10,10 @@ from app.auth.utils import authenticate_user, create_access_token
 from app.config import ACCESS_TOKEN_EXPIRE_MINUTES
 from app.db.database import get_db
 
-router = APIRouter(prefix="/login", tags=["login"])
+router = APIRouter(tags=["login"])
 
 
-@router.post("/")
+@router.post("/token")
 def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: Session = Depends(get_db)) -> Token:
     user = authenticate_user(form_data.username, form_data.password, db)
     if not user:
