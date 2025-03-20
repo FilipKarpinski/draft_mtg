@@ -1,12 +1,12 @@
 from contextlib import contextmanager
-from os import getenv
 from typing import Generator
 
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, sessionmaker
 
-SQLALCHEMY_DATABASE_URL = getenv("DATABASE_URL")
+from app.config import SQLALCHEMY_DATABASE_URL
+
 if SQLALCHEMY_DATABASE_URL is None:
     raise ValueError("DATABASE_URL environment variable is not set")
 
