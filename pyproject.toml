@@ -6,7 +6,6 @@ authors = ["Filip Karpinski <F.Karpinski@o2.pl>"]
 readme = "README.md"
 packages = [{include = "app"}]
 
-
 [tool.poetry.dependencies]
 python = "^3.12"
 pydantic = "^2.10.3"
@@ -15,6 +14,12 @@ fastapi = "^0.115.11"
 sqlalchemy = "^2.0.38"
 uvicorn = "^0.34.0"
 pre-commit = "^4.1.0"
+alembic = "^1.15.1"
+psycopg2-binary = "^2.9.10"
+python-multipart = "^0.0.20"
+passlib = "^1.7.4"
+pyjwt = "^2.10.1"
+dotenv = "^0.9.9"
 
 [tool.poetry.group.dev.dependencies]
 pylint = "3.2.1"
@@ -46,12 +51,18 @@ disable = [
     "missing-function-docstring",
     "too-few-public-methods",
 ]
+ignore-paths = ["app/alembic/*"]
 
 [tool.mypy]
 python_version = "3.12"
 ignore_missing_imports = true
 disallow_untyped_defs = true
 disallow_untyped_calls = true
+
+[[tool.mypy.overrides]]
+module = "app.alembic.*"
+ignore_errors = true
+follow_imports = "skip"
 
 [tool.autoflake]
 remove_all_unused_imports = true

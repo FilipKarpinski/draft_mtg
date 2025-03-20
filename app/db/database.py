@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from os import getenv
 from typing import Generator
 
@@ -15,6 +16,15 @@ Base = declarative_base()
 
 
 def get_db() -> Generator[Session, None, None]:
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+@contextmanager
+def db_session() -> Generator[Session, None, None]:
     db = SessionLocal()
     try:
         yield db

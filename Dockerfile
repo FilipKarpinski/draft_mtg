@@ -1,5 +1,7 @@
+# Use Python 3.12 slim image
 FROM python:3.12-slim
 
+# Set working directory
 WORKDIR /code
 
 # git is required to run pre-commit
@@ -13,7 +15,9 @@ RUN pip install --upgrade pip && \
     pip install poetry && \
     poetry config virtualenvs.create false --local
 
-COPY ./pyproject.toml ./poetry.lock* /code/
+COPY ./pyproject.toml ./poetry.lock* ./alembic.ini /code/
 
+COPY ./app /code/app
+
+# Install dependencies
 RUN poetry install --no-root
-
