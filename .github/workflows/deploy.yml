@@ -57,6 +57,6 @@ jobs:
             echo "POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}" >> .env
             echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
             
-# # Pull latest images and restart containers
-# docker-compose pull
-# docker-compose up -d
+            # Pull latest images and restart containers
+            sudo docker-compose pull
+            sudo docker-compose up -d
