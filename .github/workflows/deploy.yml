@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -31,19 +30,35 @@ jobs:
           push: true
           tags: |
             ghcr.io/filipkarpinski/draft-mtg:latest
+
+      
             
-      - name: Deploy to Remote Server
-        uses: appleboy/ssh-action@master
+      - name: Copy single file to remote
+        uses: garygrossgarten/github-action-scp@release
         with:
+          local: docker-compose.yml
+          remote: /home/frog/draft_mtg/docker-compose.yml
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT }}
-          script: |
-            # Create or update .env file
-            echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}" > .env
-            echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env
-            echo "POSTGRES_DB=${{ secrets.POSTGRES_DB }}" >> .env
-            echo "POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}" >> .env
-            echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
+          privateKey: ${{ secrets.SSH_PRIVATE_KEY }}
             
+      # - name: Deploy to Remote Server
+      #   uses: appleboy/ssh-action@master
+      #   with:
+      #     host: ${{ secrets.SSH_HOST }}
+      #     username: ${{ secrets.SSH_USER }}
+      #     key: ${{ secrets.SSH_PRIVATE_KEY }}
+      #     port: ${{ secrets.SSH_PORT }}
+      #     script: |
+      #       # Create or update .env file
+      #       echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}" > .env
+      #       echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env
+      #       echo "POSTGRES_DB=${{ secrets.POSTGRES_DB }}" >> .env
+      #       echo "POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}" >> .env
+      #       echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
+            
+      #       # Pull latest images and restart containers
+      #       docker-compose pull
+      #       docker-compose up -d
