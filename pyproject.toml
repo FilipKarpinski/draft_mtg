@@ -19,7 +19,8 @@ psycopg2-binary = "^2.9.10"
 python-multipart = "^0.0.20"
 passlib = "^1.7.4"
 pyjwt = "^2.10.1"
-dotenv = "^0.9.9"
+python-dotenv = "^1.0.0"
+ruff = "^0.11.2"
 
 [tool.poetry.group.dev.dependencies]
 pylint = "3.2.1"
@@ -33,25 +34,6 @@ ipykernel = "^6.29.5"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
-
-
-[tool.isort]
-profile = "black"
-
-[tool.black]
-target-version = ["py38"]
-line-length = 120
-
-[tool.pylint.messages_control]
-max-line-length = 120
-disable = [
-    "consider-using-generator",
-    "fixme",
-    "missing-docstring",
-    "missing-function-docstring",
-    "too-few-public-methods",
-]
-ignore-paths = ["app/alembic/*"]
 
 [tool.mypy]
 python_version = "3.12"
@@ -67,3 +49,48 @@ follow_imports = "skip"
 [tool.autoflake]
 remove_all_unused_imports = true
 remove_unused_variables = true
+
+[tool.ruff]
+line-length = 120
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+    "app/alembic/*",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "B", "I"]
+ignore = ["E501", "B008"]
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "lf"
+

@@ -1,51 +1,27 @@
 repos:
-    - repo: https://github.com/PyCQA/autoflake
-      rev: v2.3.1
+    - repo: https://github.com/astral-sh/ruff-pre-commit
+      # Ruff version.
+      rev: v0.11.2
       hooks:
-          - id: autoflake
-            verbose: true
+        # Run the linter.
+        - id: ruff
+          args: [ --fix ]
+        # Run the formatter.
+        - id: ruff-format
 
     - repo: https://github.com/MarcoGorelli/absolufy-imports
       rev: v0.3.1
       hooks:
-          - id: absolufy-imports
-            verbose: true
-            args: ["--application-directories=.:app"]
-
-    - repo: https://github.com/asottile/pyupgrade
-      rev: v3.2.0
-      hooks:
-          - id: pyupgrade
-            verbose: true
-            args: [--py38-plus]
-
-    - repo: https://github.com/timothycrosley/isort
-      rev: 5.13.2
-      hooks:
-          - id: isort
-            verbose: true
-
-    - repo: https://github.com/psf/black
-      rev: 22.12.0
-      hooks:
-          - id: black
-            verbose: true
+        - id: absolufy-imports
+          verbose: true
+          args: ["--application-directories=.:app"]
 
     - repo: local
       hooks:
-      - id: pylint
-        verbose: true
-        name: pylint
-        entry: pylint -rn -sn --rcfile=pyproject.toml
-        language: system
-        types: [python]
-
-    - repo: local
-      hooks:
-      - id: mypy
-        verbose: true
-        name: mypy
-        entry: mypy
-        language: system
-        types: [python]
+        - id: mypy
+          verbose: true
+          name: mypy
+          entry: mypy
+          language: system
+          types: [python]
 
