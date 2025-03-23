@@ -23,4 +23,4 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/FilipKarpinski/draft-mtg:latest
+            ghcr.io/filipkarpinski/draft-mtg:latest
