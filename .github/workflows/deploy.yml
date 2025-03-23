@@ -40,9 +40,7 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           script: |
             mkdir -p /home/frog/draft_mtg
-            cat > /home/frog/draft_mtg/docker-compose.yml << 'EOL'
-            $(cat docker-compose.yml)
-            EOL
+            cp docker-compose.yml /home/frog/draft_mtg/docker-compose.yml
             
             cd /home/frog/draft_mtg
             rm -f .env && touch .env
