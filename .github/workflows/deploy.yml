@@ -39,7 +39,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
           source: "docker-compose.yml"
-          target: "root"
+          target: "/root"
             
       - name: Deploy to Remote Server
         uses: appleboy/ssh-action@master
