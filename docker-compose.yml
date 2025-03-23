@@ -1,5 +1,7 @@
 services:
   web:
+    image: ghcr.io/filipkarpinski/draft-mtg:latest
+    restart: always
     build: .
     ports:
       - "8000:8000"
