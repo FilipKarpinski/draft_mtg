@@ -15,7 +15,7 @@ RUN pip install --upgrade pip && \
     pip install poetry && \
     poetry config virtualenvs.create false --local
 
-COPY ./pyproject.toml ./poetry.lock* ./alembic.ini /code/
+COPY ./pyproject.toml ./poetry.lock* /code/
 
 COPY ./app /code/app
 
