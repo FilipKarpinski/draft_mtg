@@ -41,7 +41,7 @@ jobs:
           source: "docker-compose.yml"
           target: "/home/frog/draft_mtg"
             
-      - name: Deploy to Remote Server
+      - name: Handle .env and start containers
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -49,13 +49,14 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
-            # Create or update .env file
+            cd /home/frog/draft_mtg
+            rm -f .env && touch .env
             echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}" > .env
             echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env
             echo "POSTGRES_DB=${{ secrets.POSTGRES_DB }}" >> .env
             echo "POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}" >> .env
             echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
             
-            # Pull latest images and restart containers
-            docker-compose pull
-            docker-compose up -d
+# # Pull latest images and restart containers
+# docker-compose pull
+# docker-compose up -d
