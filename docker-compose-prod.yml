@@ -5,6 +5,8 @@ services:
     command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
     depends_on:
       - nginx
+    networks:
+      - web_network
 
   nginx:
     image: nginx:1.25
@@ -13,6 +15,8 @@ services:
     depends_on:
       - web
     restart: always
+    networks:
+      - web_network
 
   web:
     image: ghcr.io/filipkarpinski/draft-mtg:latest
@@ -30,6 +34,8 @@ services:
         sleep 2 &&
         cd app && alembic upgrade head &&
         cd .. && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    networks:
+      - web_network
 
   db:
     image: postgres:16
@@ -44,6 +50,12 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - web_network
+
+networks:
+  web_network:
+    driver: bridge
 
 volumes:
   postgres_data:
