@@ -21,5 +21,6 @@ PWD_CONTEXT = CryptContext(schemes=["bcrypt"], deprecated="auto")
 ORIGINS = [
     "http://localhost",
     "http://localhost:8080",
-    "http://your-domain.com",
+    "https://draft-mtg.jako-tako-software.work",
+    "http://draft-mtg.jako-tako-software.work",
 ]
