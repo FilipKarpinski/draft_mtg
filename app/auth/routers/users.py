@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.models import User
 from app.auth.schemas import UserBase, UserCreate
-from app.auth.utils import get_current_active_user, get_password_hash
+from app.auth.utils import get_current_active_user, get_current_admin_user, get_password_hash
 from app.db.database import get_db
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -16,7 +16,8 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)) -> UserBase:
     db_user = User(
         username=user.username,
         email=user.email,
-        hashed_password=get_password_hash(user.password),  # Hash the password before storing
+        hashed_password=get_password_hash(user.password),
+        is_active=False,  # User starts as inactive by default
     )
     db.add(db_user)
     db.commit()
@@ -45,7 +46,7 @@ def get_user(user_id: int, db: Session = Depends(get_db), _: User = Depends(get_
 
 @router.put("/{user_id}")
 def update_user(
-    user_id: int, user: UserCreate, db: Session = Depends(get_db), _: User = Depends(get_current_active_user)
+    user_id: int, user: UserCreate, db: Session = Depends(get_db), _: User = Depends(get_current_admin_user)
 ) -> UserBase:
     db_user = db.query(User).filter(User.id == user_id).first()
     if db_user is None:
@@ -62,7 +63,7 @@ def update_user(
 
 @router.delete("/{user_id}")
 def delete_user(
-    user_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_active_user)
+    user_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_admin_user)
 ) -> dict[str, str]:
     db_user = db.query(User).filter(User.id == user_id).first()
     if db_user is None:
