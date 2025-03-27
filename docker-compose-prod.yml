@@ -6,6 +6,8 @@ services:
     depends_on:
       - web
     restart: always
+    ports:
+      - "80:80"
 
   web:
     image: ghcr.io/filipkarpinski/draft-mtg:latest
