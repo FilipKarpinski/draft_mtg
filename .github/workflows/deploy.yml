@@ -51,6 +51,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
+            docker system prune -f
             cd /home/frog/draft_mtg
             rm -f .env && touch .env
             echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}" > .env
