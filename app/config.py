@@ -21,4 +21,5 @@ PWD_CONTEXT = CryptContext(schemes=["bcrypt"], deprecated="auto")
 ORIGINS = [
     "http://localhost",
     "http://localhost:8080",
+    "http://your-domain.com",
 ]
