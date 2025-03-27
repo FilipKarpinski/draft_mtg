@@ -59,6 +59,7 @@ jobs:
             echo "POSTGRES_DB=${{ secrets.POSTGRES_DB }}" >> .env
             echo "POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}" >> .env
             echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
+            echo "CLOUDFLARE_TUNNEL_TOKEN=${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}" >> .env
             
             # Pull latest images and restart containers
             docker-compose -f docker-compose-prod.yml pull
