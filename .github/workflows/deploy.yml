@@ -31,15 +31,16 @@ jobs:
           tags: |
             ghcr.io/filipkarpinski/draft-mtg:latest
             
-      - name: Copy Docker Compose File to Remote Server
-        uses: appleboy/scp-action@master
+      - name: Pull Latest Changes on Remote Server
+        uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
-          source: "docker-compose.yml"
-          target: "/home/frog/draft_mtg"
+          script: |
+            cd /home/frog/draft_mtg
+            git pull origin main
             
       - name: Handle .env and start containers
         uses: appleboy/ssh-action@master
@@ -58,5 +59,5 @@ jobs:
             echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
             
             # Pull latest images and restart containers
-            docker-compose pull
-            docker-compose up -d
+            docker-compose -f docker-compose-prod.yml pull
+            docker-compose -f docker-compose-prod.yml up -d
