@@ -23,7 +23,8 @@ services:
     command: >
       sh -c "
         cd app && alembic upgrade head &&
-        cd .. && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+        cd .. && python -m app.setup_admin &&
+        uvicorn app.main:app --host 0.0.0.0 --port 8000"
 
   db:
     image: postgres:16
