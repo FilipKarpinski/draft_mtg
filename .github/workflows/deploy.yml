@@ -43,7 +43,7 @@ jobs:
             cd /home/frog/draft_mtg
             git pull origin main
             
-      - name: Handle .env and start containers
+      - name: Handle .env
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -62,4 +62,24 @@ jobs:
             
             # Pull latest images and restart containers
             docker-compose -f docker-compose-prod.yml pull
+            docker-compose -f docker-compose-prod.yml up -d
+      
+      - name: Pull latest images
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            docker-compose -f docker-compose-prod.yml pull
+              
+        - name: Pull latest images
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
             docker-compose -f docker-compose-prod.yml up -d
