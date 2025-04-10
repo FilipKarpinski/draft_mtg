@@ -59,11 +59,7 @@ jobs:
             echo "POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}" >> .env
             echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
             echo "CLOUDFLARE_TUNNEL_TOKEN=${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}" >> .env
-            
-            # Pull latest images and restart containers
-            docker-compose -f docker-compose-prod.yml pull
-            docker-compose -f docker-compose-prod.yml up -d   
-               
+
       - name: Pull latest images
         uses: appleboy/ssh-action@master
         with:
@@ -74,7 +70,7 @@ jobs:
           script: |
             docker-compose -f docker-compose-prod.yml pull
               
-        - name: Pull latest images
+      - name: Start containers
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
