@@ -40,15 +40,8 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
-            # Create directory if it doesn't exist
-            mkdir -p /root/draft_mtg
             cd /root/draft_mtg
-            
-            # Initialize git repo if it doesn't exist
-            if [ ! -d ".git" ]; then
-              git init
-              git remote add origin https://github.com/filipkarpinski/draft-mtg.git
-            fi
+            git pull origin main
             
       - name: Handle .env and start containers
         uses: appleboy/ssh-action@master
