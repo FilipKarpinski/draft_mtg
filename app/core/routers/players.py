@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.auth.models import User
 from app.auth.utils import get_current_active_user
 from app.core.models import Player
-from app.core.schemas import PlayerCreate, PlayerSchema
+from app.core.schemas.players import PlayerCreate, PlayerSchema
 from app.db.database import get_db
 
 router = APIRouter(prefix="/players", tags=["players"])

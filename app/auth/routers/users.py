@@ -17,7 +17,8 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)) -> UserBase:
         username=user.username,
         email=user.email,
         hashed_password=get_password_hash(user.password),
-        is_active=False,  # User starts as inactive by default
+        is_active=False,
+        is_admin=False,
     )
     db.add(db_user)
     db.commit()

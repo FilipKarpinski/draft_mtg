@@ -5,8 +5,11 @@ from sqlalchemy.orm import Session
 
 from app.auth.models import User
 from app.auth.utils import get_current_active_user
-from app.core.models import Draft
-from app.core.schemas import DraftCreate, DraftSchema, MatchSchema
+from app.core.models import Draft, DraftPlayer
+from app.core.schemas.draft_players import DraftPlayerSchema, DraftPlayerSetOrdersSchema
+from app.core.schemas.drafts import DraftCreate, DraftSchema
+from app.core.schemas.matches import MatchSchema
+from app.core.utils.drafts import generate_matches
 from app.db.database import get_db
 
 router = APIRouter(prefix="/drafts", tags=["drafts"])
@@ -18,9 +21,18 @@ def create_draft(
 ) -> DraftSchema:
     db_draft = Draft(
         name=draft.name,
-        draft_date=draft.draft_date,
     )
     db.add(db_draft)
+    db.commit()
+    db.refresh(db_draft)
+
+    for player_id in draft.player_ids:
+        draft_player = DraftPlayer(
+            draft_id=db_draft.id,
+            player_id=player_id,
+        )
+        db.add(draft_player)
+
     db.commit()
     db.refresh(db_draft)
     return db_draft
@@ -80,3 +92,51 @@ def list_draft_matches(draft_id: int, skip: int = 0, limit: int = 100, db: Sessi
 
     matches = db_draft.matches[skip : skip + limit]
     return matches
+
+
+@router.get("/{draft_id}/players", response_model=list[DraftPlayerSchema])
+def list_draft_players(draft_id: int, db: Session = Depends(get_db)) -> Any:
+    db_draft = db.query(Draft).filter(Draft.id == draft_id).first()
+    if db_draft is None:
+        raise HTTPException(status_code=404, detail="Draft not found")
+
+    players = db_draft.draft_players
+    return players
+
+
+@router.post("/{draft_id}/generate_matches")
+def generate_draft_matches(draft_id: int, db: Session = Depends(get_db)) -> dict[str, str]:
+    db_draft = db.query(Draft).filter(Draft.id == draft_id).first()
+    if db_draft is None:
+        raise HTTPException(status_code=404, detail="Draft not found")
+
+    if len(db_draft.matches) > 0:
+        raise HTTPException(status_code=400, detail="Draft already has matches generated")
+
+    generate_matches(db_draft, db)
+    return {"message": "Matches generated successfully"}
+
+
+@router.put("/{draft_id}/players/orders")
+def set_draft_players_orders(
+    draft_id: int,
+    draft_player_set_orders: DraftPlayerSetOrdersSchema,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_active_user),
+) -> DraftSchema:
+    db_draft = db.query(Draft).filter(Draft.id == draft_id).first()
+    if db_draft is None:
+        raise HTTPException(status_code=404, detail="Draft not found")
+
+    for player_id, order in draft_player_set_orders.player_orders.items():
+        draft_player = (
+            db.query(DraftPlayer).filter(DraftPlayer.draft_id == draft_id, DraftPlayer.player_id == player_id).first()
+        )
+        if draft_player is None:
+            raise HTTPException(status_code=404, detail="Draft player not found")
+        print("!!!", player_id, order)
+        draft_player.order = order
+
+    db.commit()
+    db.refresh(db_draft)
+    return db_draft
