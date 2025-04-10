@@ -43,7 +43,7 @@ jobs:
             cd /home/frog/draft_mtg
             git pull origin main
             
-      - name: Handle .env
+      - name: Handle .env and start containers
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -59,23 +59,7 @@ jobs:
             echo "POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}" >> .env
             echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
             echo "CLOUDFLARE_TUNNEL_TOKEN=${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}" >> .env
-
-      - name: Pull latest images
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: ${{ secrets.SSH_PORT }}
-          script: |
+            
+            # Pull latest images and restart containers
             docker-compose -f docker-compose-prod.yml pull
-              
-      - name: Start containers
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: ${{ secrets.SSH_PORT }}
-          script: |
             docker-compose -f docker-compose-prod.yml up -d
