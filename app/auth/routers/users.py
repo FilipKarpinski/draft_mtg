@@ -46,11 +46,14 @@ def get_user(user_id: int, db: Session = Depends(get_db), _: User = Depends(get_
 
 @router.put("/{user_id}")
 def update_user(
-    user_id: int, user: UserCreate, db: Session = Depends(get_db), _: User = Depends(get_current_admin_user)
+    user_id: int, user: UserCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)
 ) -> UserBase:
     db_user = db.query(User).filter(User.id == user_id).first()
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
+
+    if not current_user.is_admin and current_user.id != user_id:
+        raise HTTPException(status_code=403, detail="Not enough permissions")
 
     db_user.username = user.username
     db_user.email = user.email
