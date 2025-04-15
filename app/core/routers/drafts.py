@@ -9,7 +9,7 @@ from app.core.models import Draft, DraftPlayer
 from app.core.schemas.draft_players import DraftPlayerSchema, DraftPlayerSetOrdersSchema
 from app.core.schemas.drafts import DraftCreate, DraftSchema
 from app.core.schemas.matches import MatchSchema
-from app.core.utils.drafts import generate_matches
+from app.core.utils.drafts import calculate_final_places, generate_matches
 from app.db.database import get_db
 
 router = APIRouter(prefix="/drafts", tags=["drafts"])
@@ -104,8 +104,13 @@ def list_draft_players(draft_id: int, db: Session = Depends(get_db)) -> Any:
     return players
 
 
-@router.post("/{draft_id}/generate_matches")
-def generate_draft_matches(draft_id: int, db: Session = Depends(get_db)) -> dict[str, str]:
+@router.post("/{draft_id}/generate_matches", response_model=list[MatchSchema])
+def generate_draft_matches(draft_id: int, db: Session = Depends(get_db)) -> Any:
+    """
+    Generate the matches for the draft.
+    The matches are generated based on order of the players in the draft.
+    You can set the order of the players in the draft using the set_draft_players_orders endpoint.
+    """
     db_draft = db.query(Draft).filter(Draft.id == draft_id).first()
     if db_draft is None:
         raise HTTPException(status_code=404, detail="Draft not found")
@@ -113,8 +118,8 @@ def generate_draft_matches(draft_id: int, db: Session = Depends(get_db)) -> dict
     if len(db_draft.matches) > 0:
         raise HTTPException(status_code=400, detail="Draft already has matches generated")
 
-    generate_matches(db_draft, db)
-    return {"message": "Matches generated successfully"}
+    matches = generate_matches(db_draft, db)
+    return matches
 
 
 @router.put("/{draft_id}/players/orders")
@@ -124,6 +129,17 @@ def set_draft_players_orders(
     db: Session = Depends(get_db),
     _: User = Depends(get_current_active_user),
 ) -> DraftSchema:
+    """
+    Set the order of the players in the draft.
+    The order is a dictionary where the key is the player id and the value is the order.
+    Example:
+    {
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4,
+    }
+    """
     db_draft = db.query(Draft).filter(Draft.id == draft_id).first()
     if db_draft is None:
         raise HTTPException(status_code=404, detail="Draft not found")
@@ -134,9 +150,20 @@ def set_draft_players_orders(
         )
         if draft_player is None:
             raise HTTPException(status_code=404, detail="Draft player not found")
-        print("!!!", player_id, order)
         draft_player.order = order
 
     db.commit()
     db.refresh(db_draft)
     return db_draft
+
+
+@router.get("/{draft_id}/results", response_model=list[DraftPlayerSchema])
+def get_results(draft_id: int, db: Session = Depends(get_db)) -> Any:
+    db_draft = db.query(Draft).filter(Draft.id == draft_id).first()
+    if db_draft is None:
+        raise HTTPException(status_code=404, detail="Draft not found")
+
+    calculate_final_places(db_draft, db)
+
+    players = sorted(db_draft.draft_players, key=lambda x: x.final_place or float("inf"))
+    return players

@@ -25,6 +25,14 @@ class MatchResult(str, Enum):
     PLAYER_2_FULL_WIN = "0-2"
 
 
+POINTS_MAP = {
+    MatchResult.PLAYER_1_FULL_WIN: (3, 0),
+    MatchResult.PLAYER_1_WIN: (3, 1),
+    MatchResult.PLAYER_2_WIN: (1, 3),
+    MatchResult.PLAYER_2_FULL_WIN: (0, 3),
+}
+
+
 # pylint: disable=not-callable
 class Player(Base):
     __tablename__ = "players"
@@ -61,6 +69,7 @@ class DraftPlayer(Base):
 
     draft_id: Mapped[int] = mapped_column(Integer, ForeignKey("drafts.id"), primary_key=True)
     player_id: Mapped[int] = mapped_column(Integer, ForeignKey("players.id"), primary_key=True)
+    points: Mapped[int] = mapped_column(Integer, default=0)
     final_place: Mapped[int] = mapped_column(Integer, nullable=True)
     order: Mapped[int] = mapped_column(Integer, nullable=True)
     draft = relationship("Draft", back_populates="draft_players")
