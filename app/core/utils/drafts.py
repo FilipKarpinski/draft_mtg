@@ -1,7 +1,7 @@
 from fastapi import Depends
 from sqlalchemy.orm import Session
 
-from app.core.models import Draft, DraftPlayer, Match, MatchResult
+from app.core.models import Draft, Match, MatchResult
 from app.db.database import get_db
 
 
@@ -69,20 +69,23 @@ def generate_matches(draft: Draft, db: Session = Depends(get_db)) -> list[Match]
 
 def calculate_final_places(draft: Draft, db: Session = Depends(get_db)) -> None:
     """Calculate final places for players in a draft based on points and head-to-head results."""
-    # Sort draft players by points in descending order
-    sorted_players = sorted(draft.draft_players, key=lambda x: x.points, reverse=True)
 
-    # Group players by points to find ties
-    points_groups: dict[int, list[DraftPlayer]] = {}
-    for player in sorted_players:
-        points_groups.setdefault(player.points, []).append(player)
+    # Sort players by points in descending order
+    sorted_players = sorted(draft.draft_players, key=lambda p: p.points, reverse=True)
 
     current_place = 1
-    for points in sorted(points_groups.keys(), reverse=True):
-        tied_players = points_groups[points]
+    i = 0
+
+    while i < len(sorted_players):
+        # Find all players with the same number of points
+        tied_players = [sorted_players[i]]
+        j = i + 1
+        while j < len(sorted_players) and sorted_players[j].points == sorted_players[i].points:
+            tied_players.append(sorted_players[j])
+            j += 1
 
         if len(tied_players) == 1:
-            # Single player at this points level
+            # No tie - assign place directly
             tied_players[0].final_place = current_place
             current_place += 1
         elif len(tied_players) == 2:
@@ -109,13 +112,13 @@ def calculate_final_places(draft: Draft, db: Session = Depends(get_db)) -> None:
                     else:
                         p2.final_place = current_place
                         p1.final_place = current_place + 1
-                else:
+                else:  # head_to_head.player_1_id == p2.player_id
                     if head_to_head.score in (MatchResult.PLAYER_2_FULL_WIN, MatchResult.PLAYER_2_WIN):
-                        p2.final_place = current_place
-                        p1.final_place = current_place + 1
-                    else:
                         p1.final_place = current_place
                         p2.final_place = current_place + 1
+                    else:
+                        p2.final_place = current_place
+                        p1.final_place = current_place + 1
             else:
                 # No head to head result or match not played - mark as tie
                 p1.final_place = current_place
@@ -126,5 +129,7 @@ def calculate_final_places(draft: Draft, db: Session = Depends(get_db)) -> None:
             for player in tied_players:
                 player.final_place = current_place
             current_place += len(tied_players)
+
+        i = j
 
     db.commit()
