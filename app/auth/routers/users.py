@@ -76,3 +76,16 @@ async def delete_user(
     db.delete(db_user)
     db.commit()
     return {"message": "User deleted successfully"}
+
+
+@router.post("/{user_id}/activate")
+async def activate_user(
+    user_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_admin_user)
+) -> dict[str, str]:
+    db_user = db.query(User).filter(User.id == user_id).first()
+    if db_user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    db_user.is_active = True
+    db.commit()
+    return {"message": "User activated successfully"}
