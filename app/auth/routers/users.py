@@ -12,7 +12,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 
 @router.post("/")
-def create_user(user: UserCreate, db: Session = Depends(get_db)) -> UserBase:
+async def create_user(user: UserCreate, db: Session = Depends(get_db)) -> UserBase:
     db_user = User(
         username=user.username,
         email=user.email,
@@ -27,7 +27,7 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)) -> UserBase:
 
 
 @router.get("/", response_model=list[UserBase])
-def list_users(
+async def list_users(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
@@ -38,7 +38,7 @@ def list_users(
 
 
 @router.get("/{user_id}")
-def get_user(user_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_active_user)) -> UserBase:
+async def get_user(user_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_active_user)) -> UserBase:
     user = db.query(User).filter(User.id == user_id).first()
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
@@ -46,7 +46,7 @@ def get_user(user_id: int, db: Session = Depends(get_db), _: User = Depends(get_
 
 
 @router.put("/{user_id}")
-def update_user(
+async def update_user(
     user_id: int, user: UserCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)
 ) -> UserBase:
     db_user = db.query(User).filter(User.id == user_id).first()
@@ -66,7 +66,7 @@ def update_user(
 
 
 @router.delete("/{user_id}")
-def delete_user(
+async def delete_user(
     user_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_admin_user)
 ) -> dict[str, str]:
     db_user = db.query(User).filter(User.id == user_id).first()

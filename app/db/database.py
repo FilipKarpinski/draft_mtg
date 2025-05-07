@@ -1,29 +1,33 @@
-from contextlib import contextmanager
-from typing import Generator
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator
 
-from sqlalchemy import create_engine
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import Session, sessionmaker
 
 from app.config import DATABASE_URL
 
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# Convert PostgreSQL URL to async format
+# postgresql:// -> postgresql+asyncpg://
+ASYNC_DATABASE_URL = DATABASE_URL.replace("postgresql:", "postgresql+asyncpg:", 1)
+
+# Create async engine
+engine = create_async_engine(ASYNC_DATABASE_URL)
+AsyncSessionLocal = async_sessionmaker(autocommit=False, autoflush=False, bind=engine, class_=AsyncSession)
 Base = declarative_base()
 
 
-def get_db() -> Generator[Session, None, None]:
-    db = SessionLocal()
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    db = AsyncSessionLocal()
     try:
         yield db
     finally:
-        db.close()
+        await db.close()
 
 
-@contextmanager
-def db_session() -> Generator[Session, None, None]:
-    db = SessionLocal()
+@asynccontextmanager
+async def db_session() -> AsyncGenerator[AsyncSession, None]:
+    db = AsyncSessionLocal()
     try:
         yield db
     finally:
-        db.close()
+        await db.close()
