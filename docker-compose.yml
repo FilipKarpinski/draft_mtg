@@ -30,6 +30,12 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+  
+  test:
+    build: .
+    volumes:
+      - .:/code
+    command: pytest
 
 volumes:
   postgres_data:
