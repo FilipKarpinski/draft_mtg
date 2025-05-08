@@ -4,6 +4,7 @@ from typing import Annotated
 import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.models import User
@@ -23,7 +24,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 
 async def authenticate_user(username: str, password: str, db: AsyncSession) -> User | None:
-    result = await db.execute(User.__table__.select().where(User.username == username))
+    result = await db.execute(select(User).where(User.username == username))
     user = result.scalar_one_or_none()
     if not user:
         return None
@@ -58,7 +59,7 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: As
     except jwt.InvalidTokenError as exc:
         raise credentials_exception from exc
 
-    result = await db.execute(User.__table__.select().where(User.username == token_data.username))
+    result = await db.execute(select(User).where(User.username == token_data.username))
     user = result.scalar_one_or_none()
     if user is None:
         raise credentials_exception
