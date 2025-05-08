@@ -13,7 +13,7 @@ router = APIRouter(prefix="/players", tags=["players"])
 
 
 @router.post("/")
-async def create_player(
+def create_player(
     player: PlayerCreate, db: Session = Depends(get_db), _: User = Depends(get_current_active_user)
 ) -> PlayerSchema:
     db_player = Player(name=player.name, profile_picture_path=player.profile_picture_path or "")
@@ -24,13 +24,13 @@ async def create_player(
 
 
 @router.get("/", response_model=list[PlayerSchema])
-async def list_players(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)) -> Any:
+def list_players(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)) -> Any:
     players = db.query(Player).offset(skip).limit(limit).all()
     return players
 
 
 @router.get("/{player_id}")
-async def get_player(player_id: int, db: Session = Depends(get_db)) -> PlayerSchema:
+def get_player(player_id: int, db: Session = Depends(get_db)) -> PlayerSchema:
     player = db.query(Player).filter(Player.id == player_id).first()
     if player is None:
         raise HTTPException(status_code=404, detail="Player not found")
@@ -38,7 +38,7 @@ async def get_player(player_id: int, db: Session = Depends(get_db)) -> PlayerSch
 
 
 @router.put("/{player_id}")
-async def update_player(
+def update_player(
     player_id: int,
     player: PlayerCreate,
     db: Session = Depends(get_db),
@@ -57,7 +57,7 @@ async def update_player(
 
 
 @router.delete("/{player_id}")
-async def delete_player(
+def delete_player(
     player_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_active_user)
 ) -> dict[str, str]:
     db_player = db.query(Player).filter(Player.id == player_id).first()

@@ -12,7 +12,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 
 @router.post("/")
-async def create_user(user: UserCreate, db: Session = Depends(get_db)) -> UserBase:
+def create_user(user: UserCreate, db: Session = Depends(get_db)) -> UserBase:
     db_user = User(
         username=user.username,
         email=user.email,
@@ -27,7 +27,7 @@ async def create_user(user: UserCreate, db: Session = Depends(get_db)) -> UserBa
 
 
 @router.get("/", response_model=list[UserBase])
-async def list_users(
+def list_users(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
@@ -38,7 +38,7 @@ async def list_users(
 
 
 @router.get("/{user_id}")
-async def get_user(user_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_active_user)) -> UserBase:
+def get_user(user_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_active_user)) -> UserBase:
     user = db.query(User).filter(User.id == user_id).first()
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
@@ -46,7 +46,7 @@ async def get_user(user_id: int, db: Session = Depends(get_db), _: User = Depend
 
 
 @router.put("/{user_id}")
-async def update_user(
+def update_user(
     user_id: int, user: UserCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)
 ) -> UserBase:
     db_user = db.query(User).filter(User.id == user_id).first()
@@ -66,7 +66,7 @@ async def update_user(
 
 
 @router.delete("/{user_id}")
-async def delete_user(
+def delete_user(
     user_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_admin_user)
 ) -> dict[str, str]:
     db_user = db.query(User).filter(User.id == user_id).first()
@@ -79,7 +79,7 @@ async def delete_user(
 
 
 @router.post("/{user_id}/activate")
-async def activate_user(
+def activate_user(
     user_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_admin_user)
 ) -> dict[str, str]:
     db_user = db.query(User).filter(User.id == user_id).first()

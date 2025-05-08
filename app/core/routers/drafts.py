@@ -16,7 +16,7 @@ router = APIRouter(prefix="/drafts", tags=["drafts"])
 
 
 @router.post("/")
-async def create_draft(
+def create_draft(
     draft: DraftCreate, db: Session = Depends(get_db), _: User = Depends(get_current_active_user)
 ) -> DraftSchema:
     db_draft = Draft(
@@ -39,7 +39,7 @@ async def create_draft(
 
 
 @router.get("/{draft_id}")
-async def read_draft(draft_id: int, db: Session = Depends(get_db)) -> DraftSchema:
+def read_draft(draft_id: int, db: Session = Depends(get_db)) -> DraftSchema:
     db_draft = db.query(Draft).filter(Draft.id == draft_id).first()
     if db_draft is None:
         raise HTTPException(status_code=404, detail="Draft not found")
@@ -47,13 +47,13 @@ async def read_draft(draft_id: int, db: Session = Depends(get_db)) -> DraftSchem
 
 
 @router.get("/", response_model=list[DraftSchema])
-async def list_drafts(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)) -> Any:
+def list_drafts(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)) -> Any:
     drafts: list[Draft] = db.query(Draft).offset(skip).limit(limit).all()
     return drafts
 
 
 @router.put("/{draft_id}")
-async def update_draft(
+def update_draft(
     draft_id: int,
     draft: DraftCreate,
     db: Session = Depends(get_db),
@@ -72,7 +72,7 @@ async def update_draft(
 
 
 @router.delete("/{draft_id}")
-async def delete_draft(
+def delete_draft(
     draft_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_active_user)
 ) -> dict[str, str]:
     db_draft = db.query(Draft).filter(Draft.id == draft_id).first()
@@ -85,7 +85,7 @@ async def delete_draft(
 
 
 @router.get("/{draft_id}/matches", response_model=list[MatchSchema])
-async def list_draft_matches(draft_id: int, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)) -> Any:
+def list_draft_matches(draft_id: int, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)) -> Any:
     db_draft = db.query(Draft).filter(Draft.id == draft_id).first()
     if db_draft is None:
         raise HTTPException(status_code=404, detail="Draft not found")
@@ -95,7 +95,7 @@ async def list_draft_matches(draft_id: int, skip: int = 0, limit: int = 100, db:
 
 
 @router.get("/{draft_id}/players", response_model=list[DraftPlayerSchema])
-async def list_draft_players(draft_id: int, db: Session = Depends(get_db)) -> Any:
+def list_draft_players(draft_id: int, db: Session = Depends(get_db)) -> Any:
     db_draft = db.query(Draft).filter(Draft.id == draft_id).first()
     if db_draft is None:
         raise HTTPException(status_code=404, detail="Draft not found")
@@ -105,7 +105,7 @@ async def list_draft_players(draft_id: int, db: Session = Depends(get_db)) -> An
 
 
 @router.post("/{draft_id}/generate_matches", response_model=list[MatchSchema])
-async def generate_draft_matches(draft_id: int, db: Session = Depends(get_db)) -> Any:
+def generate_draft_matches(draft_id: int, db: Session = Depends(get_db)) -> Any:
     """
     Generate the matches for the draft.
     The matches are generated based on order of the players in the draft.
@@ -123,7 +123,7 @@ async def generate_draft_matches(draft_id: int, db: Session = Depends(get_db)) -
 
 
 @router.put("/{draft_id}/players/orders")
-async def set_draft_players_orders(
+def set_draft_players_orders(
     draft_id: int,
     draft_player_set_orders: DraftPlayerSetOrdersSchema,
     db: Session = Depends(get_db),
@@ -158,7 +158,7 @@ async def set_draft_players_orders(
 
 
 @router.get("/{draft_id}/results", response_model=list[DraftPlayerSchema])
-async def get_results(draft_id: int, db: Session = Depends(get_db)) -> Any:
+def get_results(draft_id: int, db: Session = Depends(get_db)) -> Any:
     db_draft = db.query(Draft).filter(Draft.id == draft_id).first()
     if db_draft is None:
         raise HTTPException(status_code=404, detail="Draft not found")

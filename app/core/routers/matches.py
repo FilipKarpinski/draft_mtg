@@ -11,7 +11,7 @@ router = APIRouter(prefix="/matches", tags=["matches"])
 
 
 @router.put("/{match_id}")
-async def set_score(
+def set_score(
     match_id: int,
     score: MatchResult,
     db: Session = Depends(get_db),

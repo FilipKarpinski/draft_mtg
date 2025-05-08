@@ -24,5 +24,5 @@ app.include_router(login.router)
 
 
 @app.get("/")
-async def root() -> dict[str, str]:
+def root() -> dict[str, str]:
     return {"message": "Welcome to Draft MTG API"}
