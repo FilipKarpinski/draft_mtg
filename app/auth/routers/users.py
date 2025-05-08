@@ -1,7 +1,8 @@
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.models import User
 from app.auth.schemas import UserBase, UserCreate
@@ -12,7 +13,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 
 @router.post("/")
-async def create_user(user: UserCreate, db: Session = Depends(get_db)) -> UserBase:
+async def create_user(user: UserCreate, db: AsyncSession = Depends(get_db)) -> UserBase:
     db_user = User(
         username=user.username,
         email=user.email,
@@ -21,8 +22,8 @@ async def create_user(user: UserCreate, db: Session = Depends(get_db)) -> UserBa
         is_admin=False,
     )
     db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
+    await db.commit()
+    await db.refresh(db_user)
     return db_user
 
 
@@ -30,16 +31,20 @@ async def create_user(user: UserCreate, db: Session = Depends(get_db)) -> UserBa
 async def list_users(
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_active_user),
 ) -> Any:
-    users = db.query(User).offset(skip).limit(limit).all()
+    result = await db.execute(select(User).offset(skip).limit(limit))
+    users = result.scalars().all()
     return users
 
 
 @router.get("/{user_id}")
-async def get_user(user_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_active_user)) -> UserBase:
-    user = db.query(User).filter(User.id == user_id).first()
+async def get_user(
+    user_id: int, db: AsyncSession = Depends(get_db), _: User = Depends(get_current_active_user)
+) -> UserBase:
+    result = await db.execute(select(User).filter(User.id == user_id))
+    user = result.scalar_one_or_none()
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
     return user
@@ -47,9 +52,13 @@ async def get_user(user_id: int, db: Session = Depends(get_db), _: User = Depend
 
 @router.put("/{user_id}")
 async def update_user(
-    user_id: int, user: UserCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)
+    user_id: int,
+    user: UserCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
 ) -> UserBase:
-    db_user = db.query(User).filter(User.id == user_id).first()
+    result = await db.execute(select(User).filter(User.id == user_id))
+    db_user = result.scalar_one_or_none()
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -60,32 +69,34 @@ async def update_user(
     db_user.email = user.email
     db_user.hashed_password = get_password_hash(user.password)
 
-    db.commit()
-    db.refresh(db_user)
+    await db.commit()
+    await db.refresh(db_user)
     return db_user
 
 
 @router.delete("/{user_id}")
 async def delete_user(
-    user_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_admin_user)
+    user_id: int, db: AsyncSession = Depends(get_db), _: User = Depends(get_current_admin_user)
 ) -> dict[str, str]:
-    db_user = db.query(User).filter(User.id == user_id).first()
+    result = await db.execute(select(User).filter(User.id == user_id))
+    db_user = result.scalar_one_or_none()
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
 
-    db.delete(db_user)
-    db.commit()
+    await db.delete(db_user)
+    await db.commit()
     return {"message": "User deleted successfully"}
 
 
 @router.post("/{user_id}/activate")
 async def activate_user(
-    user_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_admin_user)
+    user_id: int, db: AsyncSession = Depends(get_db), _: User = Depends(get_current_admin_user)
 ) -> dict[str, str]:
-    db_user = db.query(User).filter(User.id == user_id).first()
+    result = await db.execute(select(User).filter(User.id == user_id))
+    db_user = result.scalar_one_or_none()
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
 
     db_user.is_active = True
-    db.commit()
+    await db.commit()
     return {"message": "User activated successfully"}

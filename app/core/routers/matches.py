@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.models import User
 from app.auth.utils import get_current_active_user
@@ -14,10 +15,11 @@ router = APIRouter(prefix="/matches", tags=["matches"])
 async def set_score(
     match_id: int,
     score: MatchResult,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_active_user),
 ) -> MatchSchema:
-    db_match = db.query(Match).filter(Match.id == match_id).first()
+    result = await db.execute(select(Match).filter(Match.id == match_id))
+    db_match = result.scalar_one_or_none()
     if db_match is None:
         raise HTTPException(status_code=404, detail="Match not found")
 
@@ -26,6 +28,6 @@ async def set_score(
     db_match.draft.draft_players[db_match.player_1_id].points += player_1_points
     db_match.draft.draft_players[db_match.player_2_id].points += player_2_points
 
-    db.commit()
-    db.refresh(db_match)
+    await db.commit()
+    await db.refresh(db_match)
     return db_match

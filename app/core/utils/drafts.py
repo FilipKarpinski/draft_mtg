@@ -1,5 +1,5 @@
 from fastapi import Depends
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.models import Draft, Match, MatchResult
 from app.db.database import get_db
@@ -23,51 +23,49 @@ def sort_to_inside(players: list[int]) -> list[int]:
     return players[::2] + players[1::2][::-1]
 
 
-def generate_matches(draft: Draft, db: Session = Depends(get_db)) -> list[Match]:
-    matches = []
-    # Get draft players ordered by their order field
+async def generate_matches(draft: Draft, db: AsyncSession = Depends(get_db)) -> list[Match]:
+    """Generate matches for a draft using a round-robin tournament algorithm."""
+    # Get players sorted by order
     draft_players = sorted(draft.draft_players, key=lambda x: x.order or float("inf"))
-    players_count = len(draft_players)
+    player_ids = [dp.player_id for dp in draft_players]
 
-    if players_count < 2:
-        return []
+    # Calculate number of rounds needed
+    num_players = len(player_ids)
+    if num_players % 2 != 0:
+        # Add a dummy player for bye if odd number of players
+        player_ids.append(None)
+        num_players += 1
 
-    player_ids = sort_to_inside([dp.player_id for dp in draft_players])
-    # Add dummy player for odd number of players
-    if players_count % 2 != 0:
-        player_ids = player_ids + [0]
-        players_count += 1  # Update count after adding dummy player
+    num_rounds = num_players - 1
+    matches = []
 
-    # For a proper round-robin, arrange players in a circle
-    # The first player stays in position, others are arranged around
-    # No need to rearrange initial player_ids, as we'll pair them correctly
+    for round_num in range(1, num_rounds + 1):
+        for i in range(num_players // 2):
+            player1_id = player_ids[i]
+            player2_id = player_ids[num_players - 1 - i]
 
-    for round_num in range(1, players_count):
-        print(player_ids)
-        for i in range(players_count // 2):
-            player_1_id = player_ids[i]
-            player_2_id = player_ids[players_count - 1 - i]
-            print(player_1_id, player_2_id)
-
-            # Skip dummy player
-            if player_1_id != 0 and player_2_id != 0:
+            # Skip matches with dummy player (bye)
+            if player1_id is not None and player2_id is not None:
                 match = Match(
-                    round=round_num,
-                    player_1_id=player_1_id,
-                    player_2_id=player_2_id,
                     draft_id=draft.id,
+                    round=round_num,
+                    player_1_id=player1_id,
+                    player_2_id=player2_id,
                 )
-                matches.append(match)
                 db.add(match)
+                matches.append(match)
 
+        # Rotate players for next round (first player stays fixed)
         player_ids = rotate_players(player_ids)
 
-    db.commit()
-    db.refresh(draft)
-    return matches
+    await db.commit()
+
+    # Refresh the draft to get the matches with their IDs
+    await db.refresh(draft)
+    return draft.matches
 
 
-def calculate_final_places(draft: Draft, db: Session = Depends(get_db)) -> None:
+async def calculate_final_places(draft: Draft, db: AsyncSession) -> None:
     """Calculate final places for players in a draft based on points and head-to-head results."""
 
     # Sort players by points in descending order
@@ -132,4 +130,4 @@ def calculate_final_places(draft: Draft, db: Session = Depends(get_db)) -> None:
 
         i = j
 
-    db.commit()
+    await db.commit()

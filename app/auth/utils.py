@@ -4,7 +4,7 @@ from typing import Annotated
 import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.models import User
 from app.auth.schemas import TokenData
@@ -22,8 +22,9 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return PWD_CONTEXT.verify(plain_password, hashed_password)
 
 
-def authenticate_user(username: str, password: str, db: Session) -> User | None:
-    user = db.query(User).filter(User.username == username).first()
+async def authenticate_user(username: str, password: str, db: AsyncSession) -> User | None:
+    result = await db.execute(User.__table__.select().where(User.username == username))
+    user = result.scalar_one_or_none()
     if not user:
         return None
     if not verify_password(password, user.hashed_password):
@@ -42,7 +43,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     return encoded_jwt
 
 
-def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: Session = Depends(get_db)) -> User:
+async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: AsyncSession = Depends(get_db)) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -56,13 +57,15 @@ def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: Session 
         token_data = TokenData(username=username)
     except jwt.InvalidTokenError as exc:
         raise credentials_exception from exc
-    user = db.query(User).filter(User.username == token_data.username).first()
+
+    result = await db.execute(User.__table__.select().where(User.username == token_data.username))
+    user = result.scalar_one_or_none()
     if user is None:
         raise credentials_exception
     return user
 
 
-def get_current_active_user(
+async def get_current_active_user(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> User:
     if not current_user.is_active:
@@ -70,7 +73,7 @@ def get_current_active_user(
     return current_user
 
 
-def get_current_admin_user(
+async def get_current_admin_user(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> User:
     if not current_user.is_admin:
