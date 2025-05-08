@@ -19,7 +19,7 @@ async def set_score(
     _: User = Depends(get_current_active_user),
 ) -> MatchSchema:
     result = await db.execute(select(Match).filter(Match.id == match_id))
-    db_match = result.scalar_one_or_none()
+    db_match = result.scalar()
     if db_match is None:
         raise HTTPException(status_code=404, detail="Match not found")
 

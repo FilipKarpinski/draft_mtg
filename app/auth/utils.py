@@ -25,7 +25,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 async def authenticate_user(username: str, password: str, db: AsyncSession) -> User | None:
     result = await db.execute(select(User).where(User.username == username))
-    user = result.scalar_one_or_none()
+    user = result.scalar()
     if not user:
         return None
     if not verify_password(password, user.hashed_password):
@@ -60,7 +60,7 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: As
         raise credentials_exception from exc
 
     result = await db.execute(select(User).where(User.username == token_data.username))
-    user = result.scalar_one_or_none()
+    user = result.scalar()
     if user is None:
         raise credentials_exception
     return user

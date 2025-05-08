@@ -34,7 +34,7 @@ async def list_players(skip: int = 0, limit: int = 100, db: AsyncSession = Depen
 @router.get("/{player_id}")
 async def get_player(player_id: int, db: AsyncSession = Depends(get_db)) -> PlayerSchema:
     result = await db.execute(select(Player).filter(Player.id == player_id))
-    player = result.scalar_one_or_none()
+    player = result.scalar()
     if player is None:
         raise HTTPException(status_code=404, detail="Player not found")
     return player
@@ -48,7 +48,7 @@ async def update_player(
     _: User = Depends(get_current_active_user),
 ) -> PlayerSchema:
     result = await db.execute(select(Player).filter(Player.id == player_id))
-    db_player = result.scalar_one_or_none()
+    db_player = result.scalar()
     if db_player is None:
         raise HTTPException(status_code=404, detail="Player not found")
 
@@ -65,7 +65,7 @@ async def delete_player(
     player_id: int, db: AsyncSession = Depends(get_db), _: User = Depends(get_current_active_user)
 ) -> dict[str, str]:
     result = await db.execute(select(Player).filter(Player.id == player_id))
-    db_player = result.scalar_one_or_none()
+    db_player = result.scalar()
     if db_player is None:
         raise HTTPException(status_code=404, detail="Player not found")
 

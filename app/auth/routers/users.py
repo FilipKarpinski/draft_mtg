@@ -44,7 +44,7 @@ async def get_user(
     user_id: int, db: AsyncSession = Depends(get_db), _: User = Depends(get_current_active_user)
 ) -> UserBase:
     result = await db.execute(select(User).filter(User.id == user_id))
-    user = result.scalar_one_or_none()
+    user = result.scalar()
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
     return user
@@ -58,7 +58,7 @@ async def update_user(
     current_user: User = Depends(get_current_active_user),
 ) -> UserBase:
     result = await db.execute(select(User).filter(User.id == user_id))
-    db_user = result.scalar_one_or_none()
+    db_user = result.scalar()
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -79,7 +79,7 @@ async def delete_user(
     user_id: int, db: AsyncSession = Depends(get_db), _: User = Depends(get_current_admin_user)
 ) -> dict[str, str]:
     result = await db.execute(select(User).filter(User.id == user_id))
-    db_user = result.scalar_one_or_none()
+    db_user = result.scalar()
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -93,7 +93,7 @@ async def activate_user(
     user_id: int, db: AsyncSession = Depends(get_db), _: User = Depends(get_current_admin_user)
 ) -> dict[str, str]:
     result = await db.execute(select(User).filter(User.id == user_id))
-    db_user = result.scalar_one_or_none()
+    db_user = result.scalar()
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
 

@@ -42,7 +42,7 @@ async def create_draft(
 @router.get("/{draft_id}")
 async def read_draft(draft_id: int, db: AsyncSession = Depends(get_db)) -> DraftSchema:
     result = await db.execute(select(Draft).filter(Draft.id == draft_id))
-    db_draft = result.scalar_one_or_none()
+    db_draft = result.scalar()
     if db_draft is None:
         raise HTTPException(status_code=404, detail="Draft not found")
     return db_draft
@@ -63,7 +63,7 @@ async def update_draft(
     _: User = Depends(get_current_active_user),
 ) -> DraftSchema:
     result = await db.execute(select(Draft).filter(Draft.id == draft_id))
-    db_draft = result.scalar_one_or_none()
+    db_draft = result.scalar()
     if db_draft is None:
         raise HTTPException(status_code=404, detail="Draft not found")
 
@@ -80,7 +80,7 @@ async def delete_draft(
     draft_id: int, db: AsyncSession = Depends(get_db), _: User = Depends(get_current_active_user)
 ) -> dict[str, str]:
     result = await db.execute(select(Draft).filter(Draft.id == draft_id))
-    db_draft = result.scalar_one_or_none()
+    db_draft = result.scalar()
     if db_draft is None:
         raise HTTPException(status_code=404, detail="Draft not found")
 
@@ -92,7 +92,7 @@ async def delete_draft(
 @router.get("/{draft_id}/matches", response_model=list[MatchSchema])
 async def list_draft_matches(draft_id: int, skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db)) -> Any:
     result = await db.execute(select(Draft).filter(Draft.id == draft_id))
-    db_draft = result.scalar_one_or_none()
+    db_draft = result.scalar()
     if db_draft is None:
         raise HTTPException(status_code=404, detail="Draft not found")
 
@@ -103,7 +103,7 @@ async def list_draft_matches(draft_id: int, skip: int = 0, limit: int = 100, db:
 @router.get("/{draft_id}/players", response_model=list[DraftPlayerSchema])
 async def list_draft_players(draft_id: int, db: AsyncSession = Depends(get_db)) -> Any:
     result = await db.execute(select(Draft).filter(Draft.id == draft_id))
-    db_draft = result.scalar_one_or_none()
+    db_draft = result.scalar()
     if db_draft is None:
         raise HTTPException(status_code=404, detail="Draft not found")
 
@@ -119,7 +119,7 @@ async def generate_draft_matches(draft_id: int, db: AsyncSession = Depends(get_d
     You can set the order of the players in the draft using the set_draft_players_orders endpoint.
     """
     result = await db.execute(select(Draft).filter(Draft.id == draft_id))
-    db_draft = result.scalar_one_or_none()
+    db_draft = result.scalar()
     if db_draft is None:
         raise HTTPException(status_code=404, detail="Draft not found")
 
@@ -149,7 +149,7 @@ async def set_draft_players_orders(
     }
     """
     result = await db.execute(select(Draft).filter(Draft.id == draft_id))
-    db_draft = result.scalar_one_or_none()
+    db_draft = result.scalar()
     if db_draft is None:
         raise HTTPException(status_code=404, detail="Draft not found")
 
@@ -157,7 +157,7 @@ async def set_draft_players_orders(
         result = await db.execute(
             select(DraftPlayer).filter(DraftPlayer.draft_id == draft_id, DraftPlayer.player_id == player_id)
         )
-        draft_player = result.scalar_one_or_none()
+        draft_player = result.scalar()
         if draft_player is None:
             raise HTTPException(status_code=404, detail="Draft player not found")
         draft_player.order = order
@@ -170,7 +170,7 @@ async def set_draft_players_orders(
 @router.get("/{draft_id}/results", response_model=list[DraftPlayerSchema])
 async def get_results(draft_id: int, db: AsyncSession = Depends(get_db)) -> Any:
     result = await db.execute(select(Draft).filter(Draft.id == draft_id))
-    db_draft = result.scalar_one_or_none()
+    db_draft = result.scalar()
     if db_draft is None:
         raise HTTPException(status_code=404, detail="Draft not found")
 
