@@ -23,8 +23,8 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return PWD_CONTEXT.verify(plain_password, hashed_password)
 
 
-async def authenticate_user(username: str, password: str, db: AsyncSession) -> User | None:
-    result = await db.execute(select(User).where(User.username == username))
+async def authenticate_user(email: str, password: str, db: AsyncSession) -> User | None:
+    result = await db.execute(select(User).where(User.email == email))
     user = result.scalar()
     if not user:
         return None
@@ -52,14 +52,14 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: As
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username = payload.get("sub")
-        if username is None:
+        email = payload.get("sub")
+        if email is None:
             raise credentials_exception
-        token_data = TokenData(username=username)
+        token_data = TokenData(email=email)
     except jwt.InvalidTokenError as exc:
         raise credentials_exception from exc
 
-    result = await db.execute(select(User).where(User.username == token_data.username))
+    result = await db.execute(select(User).where(User.email == token_data.email))
     user = result.scalar()
     if user is None:
         raise credentials_exception

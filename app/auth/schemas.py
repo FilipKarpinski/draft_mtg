@@ -2,14 +2,12 @@ from pydantic import BaseModel
 
 
 class UserBase(BaseModel):
-    username: str
     email: str
     is_active: bool
     is_admin: bool
 
 
 class UserCreate(BaseModel):
-    username: str
     email: str
     password: str
 
@@ -28,7 +26,7 @@ class Token(BaseModel):
 
 
 class TokenData(BaseModel):
-    username: str | None = None
+    email: str | None = None
 
 
 class PasswordChange(BaseModel):

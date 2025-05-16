@@ -15,7 +15,6 @@ router = APIRouter(prefix="/users", tags=["users"])
 @router.post("/")
 async def create_user(user: UserCreate, db: AsyncSession = Depends(get_db)) -> UserBase:
     db_user = User(
-        username=user.username,
         email=user.email,
         hashed_password=get_password_hash(user.password),
         is_active=False,
@@ -65,7 +64,6 @@ async def update_user(
     if not current_user.is_admin and current_user.id != user_id:
         raise HTTPException(status_code=403, detail="Not enough permissions")
 
-    db_user.username = user.username
     db_user.email = user.email
     db_user.hashed_password = get_password_hash(user.password)
 
