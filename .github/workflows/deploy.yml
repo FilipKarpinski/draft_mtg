@@ -73,6 +73,11 @@ jobs:
           script: |
             cd /root/draft_mtg
             
-            # Pull latest images and restart containers
+            # Pull latest images
             docker compose -f docker-compose-prod.yml pull
+
+            # Stop existing containers
+            docker compose -f docker-compose-prod.yml down
+            
+            # Restart containers
             docker compose -f docker-compose-prod.yml up -d
