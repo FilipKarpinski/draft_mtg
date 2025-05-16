@@ -23,4 +23,6 @@ ORIGINS = [
     "http://localhost:8080",
     "https://draft-mtg.jako-tako-software.work",
     "http://draft-mtg.jako-tako-software.work",
+    "http://localhost:5173",
+    "https://draft.jako-tako-software.work",
 ]
