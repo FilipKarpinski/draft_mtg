@@ -2,6 +2,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.models import User
@@ -21,9 +22,13 @@ async def create_user(user: UserCreate, db: AsyncSession = Depends(get_db)) -> U
         is_admin=False,
     )
     db.add(db_user)
-    await db.commit()
-    await db.refresh(db_user)
-    return db_user
+    try:
+        await db.commit()
+        await db.refresh(db_user)
+        return db_user
+    except IntegrityError as err:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail="Email already registered") from err
 
 
 @router.get("/", response_model=list[UserBase])

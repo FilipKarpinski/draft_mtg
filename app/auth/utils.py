@@ -9,18 +9,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.models import User
 from app.auth.schemas import TokenData
-from app.config import ALGORITHM, PWD_CONTEXT, SECRET_KEY
+from app.config import settings
 from app.db.database import get_db
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
 def get_password_hash(password: str) -> str:
-    return PWD_CONTEXT.hash(password)
+    return settings.PWD_CONTEXT.hash(password)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return PWD_CONTEXT.verify(plain_password, hashed_password)
+    return settings.PWD_CONTEXT.verify(plain_password, hashed_password)
 
 
 async def authenticate_user(email: str, password: str, db: AsyncSession) -> User | None:
@@ -40,7 +40,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     else:
         expire = datetime.now(timezone.utc) + timedelta(minutes=15)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 
 
@@ -51,7 +51,7 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: As
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         email = payload.get("sub")
         if email is None:
             raise credentials_exception

@@ -1,28 +1,42 @@
-import os
-
-from dotenv import load_dotenv
 from passlib.context import CryptContext
-
-load_dotenv()
-
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
-SECRET_KEY = os.getenv("SECRET_KEY")
-
-POSTGRES_USER = os.getenv("POSTGRES_USER")
-POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD")
-POSTGRES_PORT = os.getenv("POSTGRES_PORT")
-POSTGRES_DB = os.getenv("POSTGRES_DB")
-DATABASE_URL = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@db:{POSTGRES_PORT}/{POSTGRES_DB}"
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-PWD_CONTEXT = CryptContext(schemes=["bcrypt"], deprecated="auto")
+class Settings(BaseSettings):
+    # JWT settings
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    SECRET_KEY: str = "somerandomkey"
 
-ORIGINS = [
-    "http://localhost",
-    "http://localhost:8080",
-    "https://draft-mtg.jako-tako-software.work",
-    "http://draft-mtg.jako-tako-software.work",
-    "http://localhost:5173",
-    "https://draft.jako-tako-software.work",
-]
+    # Database settings
+    POSTGRES_USER: str = "postgres"
+    POSTGRES_PASSWORD: str = "postgres"
+    POSTGRES_PORT: str = "5432"
+    POSTGRES_DB: str = "postgres"
+
+    # CORS settings
+    ORIGINS: list[str] = [
+        "http://localhost",
+        "http://localhost:8080",
+        "https://draft-mtg.jako-tako-software.work",
+        "http://draft-mtg.jako-tako-software.work",
+        "http://localhost:5173",
+        "https://draft.jako-tako-software.work",
+    ]
+
+    # Password hashing
+    PWD_CONTEXT: CryptContext = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+    @property
+    def DATABASE_URL(self) -> str:
+        return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@db:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+    )
+
+
+# Create settings instance
+settings = Settings()

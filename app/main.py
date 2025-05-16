@@ -3,14 +3,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.auth.routers import login, users
-from app.config import ORIGINS
+from app.config import settings
 from app.core.routers import drafts, players
 
 app = FastAPI(title="Draft MTG API", description="API for managing MTG drafts", version="1.0.0")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ORIGINS,
+    allow_origins=settings.ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

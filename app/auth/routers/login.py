@@ -14,7 +14,7 @@ from app.auth.utils import (
     get_password_hash,
     verify_password,
 )
-from app.config import ACCESS_TOKEN_EXPIRE_MINUTES
+from app.config import settings
 from app.db.database import get_db
 
 router = APIRouter(tags=["login"])
@@ -39,7 +39,7 @@ async def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(data={"sub": user.email}, expires_delta=access_token_expires)
     return Token(access_token=access_token, token_type="bearer")
 
