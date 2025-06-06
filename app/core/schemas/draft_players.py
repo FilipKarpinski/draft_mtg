@@ -13,3 +13,14 @@ class DraftPlayerSchema(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class DraftPlayerEdit(BaseModel):
+    draft_id: int
+    player_id: int
+    deck_colors: list[Color] = []
+    points: int = 0
+    final_place: int | None = None
+
+    class Config:
+        from_attributes = True

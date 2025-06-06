@@ -1,15 +1,11 @@
 from pydantic import BaseModel
 
 
-class PlayerBase(BaseModel):
+class PlayerCreate(BaseModel):
     name: str
 
 
-class PlayerCreate(PlayerBase):
-    pass
-
-
-class PlayerSchema(PlayerBase):
+class PlayerSchema(PlayerCreate):
     id: int
 
     class Config:

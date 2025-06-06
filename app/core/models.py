@@ -48,7 +48,7 @@ class Player(Base):
     __tablename__ = "players"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
-    name: Mapped[str] = mapped_column(String, index=True, nullable=False)
+    name: Mapped[str] = mapped_column(String, index=True, nullable=False, unique=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
 
@@ -64,7 +64,7 @@ class Draft(Base):
     __tablename__ = "drafts"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
-    name: Mapped[str] = mapped_column(String, index=True, nullable=False)
+    name: Mapped[str] = mapped_column(String, index=True, nullable=False, unique=True)
     date: Mapped[date] = mapped_column(Date, default=func.current_date())
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())

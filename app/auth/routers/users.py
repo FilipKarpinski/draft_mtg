@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.models import User
 from app.auth.schemas import UserBase, UserCreate
 from app.auth.utils import get_current_active_user, get_current_admin_user, get_current_user, get_password_hash
+from app.core.utils.pagination import PaginationParams, get_pagination_params
 from app.db.database import get_db
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -33,12 +34,11 @@ async def create_user(user: UserCreate, db: AsyncSession = Depends(get_db)) -> U
 
 @router.get("/", response_model=list[UserBase])
 async def list_users(
-    skip: int = 0,
-    limit: int = 100,
+    pagination: PaginationParams = Depends(get_pagination_params),
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_active_user),
 ) -> Any:
-    result = await db.execute(select(User).offset(skip).limit(limit))
+    result = await db.execute(select(User).offset(pagination.skip).limit(pagination.limit))
     users = result.scalars().all()
     return users
 

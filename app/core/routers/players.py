@@ -2,12 +2,14 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.models import User
 from app.auth.utils import get_current_active_user
 from app.core.models import Player
 from app.core.schemas.players import PlayerCreate, PlayerSchema
+from app.core.utils.pagination import PaginationParams, get_pagination_params
 from app.db.database import get_db
 
 router = APIRouter(prefix="/players", tags=["players"])
@@ -19,14 +21,20 @@ async def create_player(
 ) -> PlayerSchema:
     db_player = Player(name=player.name)
     db.add(db_player)
-    await db.commit()
-    await db.refresh(db_player)
-    return PlayerSchema.model_validate(db_player)
+    try:
+        await db.commit()
+        await db.refresh(db_player)
+        return PlayerSchema.model_validate(db_player)
+    except IntegrityError as err:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail="Player name already exists") from err
 
 
 @router.get("/", response_model=list[PlayerSchema])
-async def list_players(skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db)) -> Any:
-    result = await db.execute(select(Player).offset(skip).limit(limit))
+async def list_players(
+    pagination: PaginationParams = Depends(get_pagination_params), db: AsyncSession = Depends(get_db)
+) -> Any:
+    result = await db.execute(select(Player).offset(pagination.skip).limit(pagination.limit))
     players = result.scalars().all()
     return players
 
@@ -54,9 +62,18 @@ async def update_player(
 
     db_player.name = player.name
 
-    await db.commit()
-    await db.refresh(db_player)
-    return PlayerSchema.model_validate(db_player)
+    try:
+        await db.commit()
+        await db.refresh(db_player)
+        return PlayerSchema.model_validate(db_player)
+    except IntegrityError as e:
+        await db.rollback()
+        if "unique constraint" in str(e).lower() or "duplicate key" in str(e).lower():
+            raise HTTPException(
+                status_code=400,
+                detail=f"Player with name '{player.name}' already exists. Please choose a different name.",
+            ) from e
+        raise HTTPException(status_code=400, detail="Database error occurred") from e
 
 
 @router.delete("/{player_id}")

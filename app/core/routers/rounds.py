@@ -8,6 +8,7 @@ from sqlalchemy.orm import selectinload
 from app.core.models import Match, Round
 from app.core.schemas.matches import MatchSchema
 from app.core.schemas.rounds import RoundSchema
+from app.core.utils.pagination import PaginationParams, get_pagination_params
 from app.db.database import get_db
 
 router = APIRouter(prefix="/rounds", tags=["rounds"])
@@ -32,11 +33,13 @@ async def read_round(round_id: int, db: AsyncSession = Depends(get_db)) -> Round
 
 
 @router.get("/{round_id}/matches", response_model=list[MatchSchema])
-async def list_round_matches(round_id: int, skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db)) -> Any:
+async def list_round_matches(
+    round_id: int, pagination: PaginationParams = Depends(get_pagination_params), db: AsyncSession = Depends(get_db)
+) -> Any:
     result = await db.execute(select(Round).filter(Round.id == round_id))
     db_round = result.scalar()
     if db_round is None:
         raise HTTPException(status_code=404, detail="Round not found")
 
-    matches = db_round.matches[skip : skip + limit]
+    matches = db_round.matches[pagination.skip : pagination.skip + pagination.limit]
     return matches

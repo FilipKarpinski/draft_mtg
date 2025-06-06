@@ -15,14 +15,14 @@ class DraftCreate(DraftBase):
     player_ids: List[int]
 
 
-class DraftSchemaBase(DraftBase):
+class DraftList(DraftBase):
     id: int
+    name: str
+    date: date
 
-    class Config:
-        from_attributes = True
 
-
-class DraftSchema(DraftSchemaBase):
+class DraftFull(BaseModel):
+    id: int
     rounds: List["RoundSchema"] = []
     draft_players: List["DraftPlayerSchema"] = []
 
@@ -32,4 +32,4 @@ class DraftSchema(DraftSchemaBase):
 
 from app.core.schemas.rounds import RoundSchema  # noqa: E402
 
-DraftSchema.model_rebuild()
+DraftFull.model_rebuild()

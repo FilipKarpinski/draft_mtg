@@ -3,18 +3,14 @@ from pydantic import BaseModel
 from app.core.schemas.players import PlayerSchema
 
 
-class MatchBase(BaseModel):
+class MatchCreate(BaseModel):
     player_1_id: int
     player_2_id: int
     score: str | None = None
     round_id: int
 
 
-class MatchCreate(MatchBase):
-    pass
-
-
-class MatchSchema(MatchBase):
+class MatchSchema(MatchCreate):
     id: int
     player_1: PlayerSchema
     player_2: PlayerSchema
