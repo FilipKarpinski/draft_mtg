@@ -1,15 +1,29 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, field_validator
 
 
 class UserBase(BaseModel):
-    email: str
-    is_active: bool
-    is_admin: bool
+    email: EmailStr
+    is_active: bool = True
+    is_admin: bool = False
+
+    class Config:
+        from_attributes = True
 
 
 class UserCreate(BaseModel):
-    email: str
+    email: EmailStr
     password: str
+
+    @field_validator("password")
+    @classmethod
+    def password_strength(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError("password must be at least 8 characters")
+        if not any(char.isdigit() for char in v):
+            raise ValueError("password must contain at least one digit")
+        if not any(char.isupper() for char in v):
+            raise ValueError("password must contain at least one uppercase letter")
+        return v
 
 
 class UserSchema(UserBase):

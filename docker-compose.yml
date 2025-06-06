@@ -14,8 +14,8 @@ services:
       - .:/code
     command: >
       sh -c "
-        cd app && alembic upgrade head &&
-        cd .. && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+        cd app && uv run alembic upgrade head &&
+        cd .. && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
 
   db:
     image: postgres:16

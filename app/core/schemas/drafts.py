@@ -1,3 +1,4 @@
+from datetime import date
 from typing import List
 
 from pydantic import BaseModel
@@ -10,6 +11,7 @@ class DraftBase(BaseModel):
 
 
 class DraftCreate(DraftBase):
+    date: date
     player_ids: List[int]
 
 
@@ -21,13 +23,13 @@ class DraftSchemaBase(DraftBase):
 
 
 class DraftSchema(DraftSchemaBase):
-    matches: List["MatchSchema"] = []
+    rounds: List["RoundSchema"] = []
     draft_players: List["DraftPlayerSchema"] = []
 
     class Config:
         from_attributes = True
 
 
-from app.core.schemas.matches import MatchSchema  # noqa: E402
+from app.core.schemas.rounds import RoundSchema  # noqa: E402
 
 DraftSchema.model_rebuild()

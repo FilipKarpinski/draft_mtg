@@ -4,20 +4,26 @@ FROM python:3.12-slim
 # Set working directory
 WORKDIR /code
 
-# git is required to run pre-commit
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
-    git
+    git \
+    && rm -rf /var/lib/apt/lists/*
 
-# allows pre-commit to run
+# Configure git for pre-commit
 RUN git config --global --add safe.directory /code
 
+# Install uv
 RUN pip install --upgrade pip && \
-    pip install poetry && \
-    poetry config virtualenvs.create false --local
+    pip install uv
 
-COPY ./pyproject.toml ./poetry.lock* /code/
+# Copy dependency files first (for better caching)
+COPY pyproject.toml uv.lock* ./README.md ./
 
+# Install dependencies without dev dependencies
+RUN uv sync --frozen --no-dev
+
+# Copy application code
 COPY ./app /code/app
 
-# Install dependencies
-RUN poetry install --no-root
+# Set Python path
+ENV PYTHONPATH=/code

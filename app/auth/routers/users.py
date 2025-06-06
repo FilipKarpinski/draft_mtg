@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.models import User
 from app.auth.schemas import UserBase, UserCreate
-from app.auth.utils import get_current_active_user, get_current_admin_user, get_password_hash
+from app.auth.utils import get_current_active_user, get_current_admin_user, get_current_user, get_password_hash
 from app.db.database import get_db
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -25,7 +25,7 @@ async def create_user(user: UserCreate, db: AsyncSession = Depends(get_db)) -> U
     try:
         await db.commit()
         await db.refresh(db_user)
-        return db_user
+        return UserBase.model_validate(db_user)
     except IntegrityError as err:
         await db.rollback()
         raise HTTPException(status_code=400, detail="Email already registered") from err
@@ -43,6 +43,14 @@ async def list_users(
     return users
 
 
+@router.get("/me", response_model=UserBase)
+async def get_me(current_user: User = Depends(get_current_user)) -> UserBase:
+    """
+    Get details of the currently authenticated user.
+    """
+    return UserBase.model_validate(current_user)
+
+
 @router.get("/{user_id}")
 async def get_user(
     user_id: int, db: AsyncSession = Depends(get_db), _: User = Depends(get_current_active_user)
@@ -51,7 +59,7 @@ async def get_user(
     user = result.scalar()
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
-    return user
+    return UserBase.model_validate(user)
 
 
 @router.put("/{user_id}")
@@ -74,7 +82,7 @@ async def update_user(
 
     await db.commit()
     await db.refresh(db_user)
-    return db_user
+    return UserBase.model_validate(db_user)
 
 
 @router.delete("/{user_id}")

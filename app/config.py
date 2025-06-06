@@ -3,10 +3,13 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    DEBUG: bool = False
     # JWT settings
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    ACCESS_TOKEN_EXPIRE_SECONDS: int = 30 * 60  # 30 minutes
+    REFRESH_TOKEN_EXPIRE_SECONDS: int = 30 * 24 * 60 * 60  # 30 days
     SECRET_KEY: str = "somerandomkey"
+    REFRESH_TOKEN_SECRET_KEY: str = "anotherverysecretkey"  # Different key for refresh tokens
 
     # Database settings
     POSTGRES_USER: str = "postgres"

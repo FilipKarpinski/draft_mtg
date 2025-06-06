@@ -1,9 +1,9 @@
 # pylint: disable=unsubscriptable-object,not-callable
-from datetime import datetime
+from datetime import date
 
 from sqlalchemy import (  # pylint: disable=no-name-in-module
     Boolean,
-    DateTime,
+    Date,
     Integer,
     String,
     func,
@@ -21,5 +21,5 @@ class User(Base):
     email: Mapped[str] = mapped_column(String, index=True, unique=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
+    created_at: Mapped[date] = mapped_column(Date, default=func.current_date())
+    updated_at: Mapped[date] = mapped_column(Date, default=func.current_date(), onupdate=func.current_date())

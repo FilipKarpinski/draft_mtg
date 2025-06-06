@@ -1,21 +1,15 @@
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel
+
+from app.core.models import Color
 
 
 class DraftPlayerSchema(BaseModel):
     draft_id: int
     player_id: int
+    deck_colors: list[Color] = []
+    points: int = 0
     final_place: int | None = None
-    order: int | None = None
+    order: int
 
     class Config:
         from_attributes = True
-
-
-class DraftPlayerSetOrdersSchema(BaseModel):
-    player_orders: dict[int, int]
-
-    @model_validator(mode="after")
-    def validate_player_orders(self) -> "DraftPlayerSetOrdersSchema":
-        if len(set(self.player_orders.values())) != len(self.player_orders):
-            raise ValueError("All player_orders must have unique values")
-        return self

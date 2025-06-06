@@ -12,7 +12,7 @@ from app.auth.schemas import TokenData
 from app.config import settings
 from app.db.database import get_db
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 
 def get_password_hash(password: str) -> str:
@@ -33,14 +33,17 @@ async def authenticate_user(email: str, password: str, db: AsyncSession) -> User
     return user
 
 
-def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
+def create_access_token(data: dict, exipration_time_in_seconds: int = settings.ACCESS_TOKEN_EXPIRE_SECONDS) -> str:
     to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
-    else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=15)
-    to_encode.update({"exp": expire})
+    to_encode.update({"exp": datetime.now(timezone.utc) + timedelta(seconds=exipration_time_in_seconds)})
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    return encoded_jwt
+
+
+def create_refresh_token(data: dict, exipration_time_in_secods: int = settings.REFRESH_TOKEN_EXPIRE_SECONDS) -> str:
+    to_encode = data.copy()
+    to_encode.update({"exp": datetime.now(timezone.utc) + timedelta(seconds=exipration_time_in_secods)})
+    encoded_jwt = jwt.encode(to_encode, settings.REFRESH_TOKEN_SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 
 

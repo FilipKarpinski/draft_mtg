@@ -17,11 +17,11 @@ router = APIRouter(prefix="/players", tags=["players"])
 async def create_player(
     player: PlayerCreate, db: AsyncSession = Depends(get_db), _: User = Depends(get_current_active_user)
 ) -> PlayerSchema:
-    db_player = Player(name=player.name, profile_picture_path=player.profile_picture_path or "")
+    db_player = Player(name=player.name)
     db.add(db_player)
     await db.commit()
     await db.refresh(db_player)
-    return db_player
+    return PlayerSchema.model_validate(db_player)
 
 
 @router.get("/", response_model=list[PlayerSchema])
@@ -37,7 +37,7 @@ async def get_player(player_id: int, db: AsyncSession = Depends(get_db)) -> Play
     player = result.scalar()
     if player is None:
         raise HTTPException(status_code=404, detail="Player not found")
-    return player
+    return PlayerSchema.model_validate(player)
 
 
 @router.put("/{player_id}")
@@ -53,11 +53,10 @@ async def update_player(
         raise HTTPException(status_code=404, detail="Player not found")
 
     db_player.name = player.name
-    db_player.profile_picture_path = player.profile_picture_path or ""
 
     await db.commit()
     await db.refresh(db_player)
-    return db_player
+    return PlayerSchema.model_validate(db_player)
 
 
 @router.delete("/{player_id}")
