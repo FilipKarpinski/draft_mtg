@@ -15,11 +15,9 @@ class DraftPlayerSchema(BaseModel):
         from_attributes = True
 
 
-class DraftPlayerEdit(BaseModel):
-    draft_id: int
-    player_id: int
-    deck_colors: list[Color] = []
-    points: int = 0
+class DraftPlayerUpdate(BaseModel):
+    deck_colors: list[str] | None = None
+    points: int | None = None
     final_place: int | None = None
 
     class Config:

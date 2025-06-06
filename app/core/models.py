@@ -21,6 +21,7 @@ from app.db.database import Base
 
 
 class MatchResult(str, Enum):
+    BASE = "0-0"
     PLAYER_1_FULL_WIN = "2-0"
     PLAYER_1_WIN = "2-1"
     PLAYER_2_WIN = "1-2"

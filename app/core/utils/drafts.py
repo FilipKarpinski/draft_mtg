@@ -1,9 +1,13 @@
+from typing import Dict, List
+
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
-from app.core.models import Draft, Match, MatchResult, Round
+from app.core.models import POINTS_MAP, Draft, DraftPlayer, Match, MatchResult, Round
 
 
-def rotate_players(players: list[int]) -> list[int]:
+def rotate_players(players: List[int]) -> List[int]:
     """
     Rotate players for round-robin tournament.
     First player stays fixed, others rotate clockwise.
@@ -13,7 +17,7 @@ def rotate_players(players: list[int]) -> list[int]:
     return players[0:1] + [players[-1]] + players[1:-1]
 
 
-def sort_to_inside(players: list[int]) -> list[int]:
+def sort_to_inside(players: List[int]) -> List[int]:
     """
     Sort players to inside out pattern.
     Example: [1,2,3,4,5,6] -> [1,3,5,6,4,2]
@@ -21,12 +25,125 @@ def sort_to_inside(players: list[int]) -> list[int]:
     return players[::2] + players[1::2][::-1]
 
 
+async def calculate_points(draft: Draft, db: AsyncSession) -> None:
+    """
+    Calculate points for all players in a draft based on match results.
+    Set final_place based on points and head-to-head matches.
+    If points and head-to-head are equal, it's a tie.
+    """
+    # Load draft with all relationships
+    stmt = (
+        select(Draft)
+        .options(
+            selectinload(Draft.rounds).selectinload(Round.matches),
+            selectinload(Draft.draft_players),
+        )
+        .filter(Draft.id == draft.id)
+    )
+    result = await db.execute(stmt)
+    draft_with_relations: Draft | None = result.scalar()
+
+    if not draft_with_relations:
+        return
+
+    # Initialize points for all players
+    player_points: Dict[int, int] = {}
+    for draft_player in draft_with_relations.draft_players:
+        player_points[draft_player.player_id] = 0
+
+    # Calculate points from all matches
+    for round_obj in draft_with_relations.rounds:
+        for match in round_obj.matches:
+            if match.score in POINTS_MAP:
+                player_1_points: int
+                player_2_points: int
+                player_1_points, player_2_points = POINTS_MAP[MatchResult(match.score)]
+
+                if match.player_1_id in player_points:
+                    player_points[match.player_1_id] += player_1_points
+                if match.player_2_id in player_points:
+                    player_points[match.player_2_id] += player_2_points
+
+    # Update points in database
+    for draft_player in draft_with_relations.draft_players:
+        draft_player.points = player_points[draft_player.player_id]
+
+    # Create head-to-head record for tiebreaking
+    head_to_head: Dict[int, Dict[int, int]] = {}
+    for round_obj in draft_with_relations.rounds:
+        for match in round_obj.matches:
+            if match.score in POINTS_MAP:
+                p1_id: int = match.player_1_id
+                p2_id: int = match.player_2_id
+
+                # Initialize head-to-head records
+                if p1_id not in head_to_head:
+                    head_to_head[p1_id] = {}
+                if p2_id not in head_to_head:
+                    head_to_head[p2_id] = {}
+
+                # Record head-to-head result
+                p1_points: int
+                p2_points: int
+                p1_points, p2_points = POINTS_MAP[MatchResult(match.score)]
+
+                if p2_id not in head_to_head[p1_id]:
+                    head_to_head[p1_id][p2_id] = 0
+                if p1_id not in head_to_head[p2_id]:
+                    head_to_head[p2_id][p1_id] = 0
+
+                head_to_head[p1_id][p2_id] += p1_points
+                head_to_head[p2_id][p1_id] += p2_points
+
+    # Sort players by points and resolve ties with head-to-head
+    draft_players_list: List[DraftPlayer] = list(draft_with_relations.draft_players)
+
+    def compare_players(p1: DraftPlayer, p2: DraftPlayer) -> int:
+        """Compare two players for ranking. Return -1 if p1 > p2, 1 if p2 > p1, 0 if tie."""
+        # First compare by points
+        if p1.points != p2.points:
+            return -1 if p1.points > p2.points else 1
+
+        # If points are equal, check head-to-head
+        p1_id: int = p1.player_id
+        p2_id: int = p2.player_id
+        if p1_id in head_to_head and p2_id in head_to_head[p1_id]:
+            p1_h2h: int = head_to_head[p1_id].get(p2_id, 0)
+            p2_h2h: int = head_to_head[p2_id].get(p1_id, 0)
+
+            if p1_h2h != p2_h2h:
+                return -1 if p1_h2h > p2_h2h else 1
+
+        # If both points and head-to-head are equal, it's a tie
+        return 0
+
+    # Sort players using bubble sort with custom comparison to handle ties properly
+    for i in range(len(draft_players_list)):
+        for j in range(len(draft_players_list) - 1 - i):
+            if compare_players(draft_players_list[j], draft_players_list[j + 1]) > 0:
+                draft_players_list[j], draft_players_list[j + 1] = draft_players_list[j + 1], draft_players_list[j]
+
+    # Assign final places, handling ties
+    current_place: int = 1
+    for i, player in enumerate(draft_players_list):
+        if i > 0:
+            prev_player: DraftPlayer = draft_players_list[i - 1]
+            if compare_players(prev_player, player) != 0:
+                # Not a tie, move to next place
+                current_place = i + 1
+            # If it's a tie, keep the same place
+
+        player.final_place = current_place
+
+    # Commit all changes
+    await db.commit()
+
+
 async def generate_matches(draft: Draft, db: AsyncSession) -> None:
     """Generate matches for a draft using a round-robin tournament algorithm."""
     # Get players sorted by order
     draft_players = sorted(draft.draft_players, key=lambda x: x.order or float("inf"))
     player_ids = [dp.player_id for dp in draft_players]
-    print("!!!!", player_ids)
 
     # Calculate number of rounds needed
     num_players = len(player_ids)
@@ -62,6 +179,7 @@ async def generate_matches(draft: Draft, db: AsyncSession) -> None:
                     round_id=db_round.id,
                     player_1_id=player1_id,
                     player_2_id=player2_id,
+                    score=MatchResult.BASE,
                 )
                 db.add(match)
 
@@ -72,72 +190,3 @@ async def generate_matches(draft: Draft, db: AsyncSession) -> None:
 
     # Refresh the draft to get the rounds and matches with their IDs
     await db.refresh(draft)
-
-
-async def calculate_final_places(draft: Draft, db: AsyncSession) -> None:
-    """Calculate final places for players in a draft based on points and head-to-head results."""
-
-    # Sort players by points in descending order
-    sorted_players = sorted(draft.draft_players, key=lambda p: p.points, reverse=True)
-
-    current_place = 1
-    i = 0
-
-    while i < len(sorted_players):
-        # Find all players with the same number of points
-        tied_players = [sorted_players[i]]
-        j = i + 1
-        while j < len(sorted_players) and sorted_players[j].points == sorted_players[i].points:
-            tied_players.append(sorted_players[j])
-            j += 1
-
-        if len(tied_players) == 1:
-            # No tie - assign place directly
-            tied_players[0].final_place = current_place
-            current_place += 1
-        elif len(tied_players) == 2:
-            # Two players tied - check head to head
-            p1, p2 = tied_players
-            # Find matches between these players across all rounds
-            head_to_head = None
-            for round_obj in draft.rounds:
-                for match in round_obj.matches:
-                    if (match.player_1_id == p1.player_id and match.player_2_id == p2.player_id) or (
-                        match.player_1_id == p2.player_id and match.player_2_id == p1.player_id
-                    ):
-                        if match.score is not None:
-                            head_to_head = match
-                            break
-                if head_to_head:
-                    break
-
-            if head_to_head and head_to_head.score:
-                # Determine winner based on match result
-                if head_to_head.player_1_id == p1.player_id:
-                    if head_to_head.score in (MatchResult.PLAYER_1_FULL_WIN, MatchResult.PLAYER_1_WIN):
-                        p1.final_place = current_place
-                        p2.final_place = current_place + 1
-                    else:
-                        p2.final_place = current_place
-                        p1.final_place = current_place + 1
-                else:  # head_to_head.player_1_id == p2.player_id
-                    if head_to_head.score in (MatchResult.PLAYER_1_FULL_WIN, MatchResult.PLAYER_1_WIN):
-                        p2.final_place = current_place
-                        p1.final_place = current_place + 1
-                    else:
-                        p1.final_place = current_place
-                        p2.final_place = current_place + 1
-            else:
-                # No head to head result or match not played - mark as tie
-                p1.final_place = current_place
-                p2.final_place = current_place
-            current_place += len(tied_players)
-        else:
-            # Three or more players tied - all get same place
-            for player in tied_players:
-                player.final_place = current_place
-            current_place += len(tied_players)
-
-        i = j
-
-    await db.commit()
