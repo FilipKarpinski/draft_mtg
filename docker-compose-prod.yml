@@ -21,7 +21,7 @@ services:
       - .:/code
     command: >
       sh -c "
-        cd app && uv runalembic upgrade head &&
+        cd app && uv run alembic upgrade head &&
         cd .. && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000"
 
   db:
