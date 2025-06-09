@@ -7,3 +7,4 @@ tests/
 .coverage
 htmlcov/
 .vscode/
+.venv
