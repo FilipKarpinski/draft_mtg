@@ -2,6 +2,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -9,7 +10,7 @@ from app.auth.models import User
 from app.auth.utils import get_current_active_user
 from app.core.models import Draft, DraftPlayer, Match, Round
 from app.core.schemas.drafts import DraftCreate, DraftFull, DraftList
-from app.core.utils.drafts import calculate_points, generate_matches
+from app.core.utils.drafts import calculate_points, populate_draft
 from app.core.utils.pagination import PaginationParams, get_pagination_params
 from app.db.database import get_db
 
@@ -24,20 +25,24 @@ async def create_draft(
     Order of player ids is the order in which the players will play in first round, meaning
     1v2, 3v4, 5v6, etc.
     """
-    db_draft = Draft(name=draft.name, date=draft.date)
-    db.add(db_draft)
-    await db.commit()
-    await db.refresh(db_draft)
+    try:
+        db_draft = Draft(name=draft.name, date=draft.date)
+        db.add(db_draft)
+        await db.commit()
+        await db.refresh(db_draft)
 
-    for index, player_id in enumerate(draft.player_ids):
-        draft_player = DraftPlayer(
-            draft_id=db_draft.id,
-            player_id=player_id,
-            order=index + 1,
-        )
-        db.add(draft_player)
+        for index, player_id in enumerate(draft.player_ids):
+            draft_player = DraftPlayer(
+                draft_id=db_draft.id,
+                player_id=player_id,
+                order=index + 1,
+            )
+            db.add(draft_player)
 
-    await db.commit()
+            await db.commit()
+    except IntegrityError as err:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail="Draft name already exists or wrong player ids") from err
 
     # Reload with relationships
     stmt = select(Draft).options(selectinload(Draft.draft_players)).filter(Draft.id == db_draft.id)
@@ -46,25 +51,26 @@ async def create_draft(
     if db_draft_with_players is None:
         raise HTTPException(status_code=500, detail="Failed to reload draft")
 
-    await generate_matches(db_draft_with_players, db)
-
-    # Load draft with all nested relationships like read_draft does
-    stmt = (
-        select(Draft)
-        .options(
-            selectinload(Draft.rounds).selectinload(Round.matches).selectinload(Match.player_1),
-            selectinload(Draft.rounds).selectinload(Round.matches).selectinload(Match.player_2),
-            selectinload(Draft.draft_players),
+    try:
+        await populate_draft(db_draft_with_players, db)
+        # Load draft with all nested relationships like read_draft does
+        stmt = (
+            select(Draft)
+            .options(
+                selectinload(Draft.rounds).selectinload(Round.matches).selectinload(Match.player_1),
+                selectinload(Draft.rounds).selectinload(Round.matches).selectinload(Match.player_2),
+                selectinload(Draft.draft_players).selectinload(DraftPlayer.player),
+            )
+            .filter(Draft.id == db_draft.id)
         )
-        .filter(Draft.id == db_draft.id)
-    )
 
-    result = await db.execute(stmt)
-    db_draft_full = result.scalar()
-    if db_draft_full is None:
-        raise HTTPException(status_code=500, detail="Failed to reload draft with full relationships")
+        result = await db.execute(stmt)
+        db_draft_full = result.scalar()
 
-    return DraftFull.model_validate(db_draft_full)
+        return DraftFull.model_validate(db_draft_full)
+    except Exception as err:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail="Failed to populate draft") from err
 
 
 @router.get("/{draft_id}")
@@ -75,7 +81,7 @@ async def read_draft(draft_id: int, db: AsyncSession = Depends(get_db)) -> Draft
         .options(
             selectinload(Draft.rounds).selectinload(Round.matches).selectinload(Match.player_1),
             selectinload(Draft.rounds).selectinload(Round.matches).selectinload(Match.player_2),
-            selectinload(Draft.draft_players),
+            selectinload(Draft.draft_players).selectinload(DraftPlayer.player),
         )
         .filter(Draft.id == draft_id)
     )

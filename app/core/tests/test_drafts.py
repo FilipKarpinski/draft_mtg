@@ -1,10 +1,10 @@
+from collections import defaultdict
 from unittest.mock import AsyncMock
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.models import Draft, DraftPlayer, Match, MatchResult
-from app.core.utils.drafts import calculate_final_places, generate_matches, rotate_players, sort_to_inside
+from app.core.models import Draft, DraftPlayer, Match
+from app.core.utils.drafts import generate_matches, generate_rounds, rotate_players, sort_to_inside
 
 
 class TestRotatePlayers:
@@ -36,118 +36,121 @@ class TestSortToInside:
         assert sort_to_inside([1, 2, 3, 4, 5]) == [1, 3, 5, 4, 2]
 
 
-class TestGenerateMatches:
-    @pytest.fixture
-    def mock_db(self) -> AsyncMock:
-        db = AsyncMock(spec=AsyncSession)
-        return db
+class TestRounds:
+    @pytest.mark.asyncio
+    async def test_no_players(self, base_draft: Draft, mock_db: AsyncMock) -> None:
+        base_draft.draft_players = []
+        player_ids = [player_id for player_id in base_draft.draft_players]
+
+        rounds = await generate_rounds(base_draft, player_ids, mock_db)
+
+        assert len(rounds) == 0
 
     @pytest.mark.asyncio
-    async def test_no_players(self, mock_db: AsyncMock) -> None:
-        draft = Draft(id=1)
-        draft.draft_players = []
+    async def test_one_player(self, base_draft: Draft, mock_db: AsyncMock) -> None:
+        base_draft.draft_players = [DraftPlayer(player_id=1, order=1)]
+        player_ids = [player_id for player_id in base_draft.draft_players]
 
-        matches = await generate_matches(draft, mock_db)
+        rounds = await generate_rounds(base_draft, player_ids, mock_db)
 
-        assert matches == []
-
-    @pytest.mark.asyncio
-    async def test_one_player(self, mock_db: AsyncMock) -> None:
-        draft = Draft(id=1)
-        player = DraftPlayer(player_id=1, order=1)
-        draft.draft_players = [player]
-
-        matches = await generate_matches(draft, mock_db)
-
-        assert matches == []
+        assert len(rounds) == 0
 
     @pytest.mark.asyncio
-    async def test_even_number_of_players(self, mock_db: AsyncMock) -> None:
-        draft = Draft(id=1)
-        players = [
-            DraftPlayer(player_id=1, order=1),
-            DraftPlayer(player_id=2, order=2),
-            DraftPlayer(player_id=3, order=3),
-            DraftPlayer(player_id=4, order=4),
-        ]
-        draft.draft_players = players
+    async def test_even_number_of_players(self, draft_even_players: Draft, mock_db: AsyncMock) -> None:
+        player_ids = [player.player_id for player in draft_even_players.draft_players]
 
-        # Mock the matches that would be created
-        matches = [Match(id=i, draft_id=1, player_1_id=1, player_2_id=2, round=1) for i in range(1, 7)]
-        draft.matches = matches
+        rounds = await generate_rounds(draft_even_players, player_ids, mock_db)
 
-        # Mock the refresh to return the draft with matches
-        mock_db.refresh.return_value = None
-
-        result = await generate_matches(draft, mock_db)
-
-        assert len(result) == 6
-        mock_db.commit.assert_awaited_once()
-        assert mock_db.add.call_count == 6
-
-
-class TestCalculateFinalPlaces:
-    @pytest.fixture
-    def mock_db(self) -> AsyncMock:
-        db = AsyncMock(spec=AsyncSession)
-        return db
+        assert len(rounds) == 3
 
     @pytest.mark.asyncio
-    async def test_no_ties(self, mock_db: AsyncMock) -> None:
-        draft = Draft(id=1)
-        players = [
-            DraftPlayer(player_id=1, points=9),
-            DraftPlayer(player_id=2, points=6),
-            DraftPlayer(player_id=3, points=3),
-        ]
-        draft.draft_players = players
-        draft.matches = []
+    async def test_odd_number_of_players(self, draft_odd_players: Draft, mock_db: AsyncMock) -> None:
+        player_ids = [player.player_id for player in draft_odd_players.draft_players]
+        player_ids.append(None)
 
-        await calculate_final_places(draft, mock_db)
+        rounds = await generate_rounds(draft_odd_players, player_ids, mock_db)
 
-        assert players[0].final_place == 1
-        assert players[1].final_place == 2
-        assert players[2].final_place == 3
-        mock_db.commit.assert_awaited_once()
+        assert len(rounds) == 5
 
-    @pytest.mark.asyncio
-    async def test_two_way_tie_with_head_to_head(self, mock_db: AsyncMock) -> None:
-        draft = Draft(id=1)
-        players = [
-            DraftPlayer(player_id=1, points=6),
-            DraftPlayer(player_id=2, points=6),
-        ]
-        draft.draft_players = players
 
-        # Player 1 won against player 2
-        match = Match(
-            player_1_id=1,
-            player_2_id=2,
-            score=MatchResult.PLAYER_1_WIN,
-        )
-        draft.matches = [match]
-
-        await calculate_final_places(draft, mock_db)
-
-        assert players[0].final_place == 1
-        assert players[1].final_place == 2
-        mock_db.commit.assert_awaited_once()
+class TestMatches:
+    def group_matches_by_round(self, matches: list[Match]) -> dict[int, list[Match]]:
+        grouped_matches = defaultdict(list)
+        for match in matches:
+            grouped_matches[match.round_id].append(match)
+        return grouped_matches
 
     @pytest.mark.asyncio
-    async def test_three_way_tie(self, mock_db: AsyncMock) -> None:
-        draft = Draft(id=1)
-        players = [
-            DraftPlayer(player_id=1, points=6),
-            DraftPlayer(player_id=2, points=6),
-            DraftPlayer(player_id=3, points=6),
-        ]
-        draft.draft_players = players
-        draft.matches = []
+    async def test_even_rounds_even_players(self, draft_even_players_with_rounds: Draft, mock_db: AsyncMock) -> None:
+        player_ids = [player.player_id for player in draft_even_players_with_rounds.draft_players]
 
-        await calculate_final_places(draft, mock_db)
+        matches = await generate_matches(draft_even_players_with_rounds.rounds, player_ids, mock_db)
+        grouped_matches = self.group_matches_by_round(matches)
 
-        # All players should have the same place
-        assert players[0].final_place == 1
-        assert players[1].final_place == 1
-        assert players[2].final_place == 1
-        mock_db.commit.assert_awaited_once()
+        # Round 1
+        assert grouped_matches[1][0].player_1_id == 1
+        assert grouped_matches[1][0].player_2_id == 2
+        assert grouped_matches[1][1].player_1_id == 3
+        assert grouped_matches[1][1].player_2_id == 4
+
+        # Round 2
+        assert grouped_matches[2][0].player_1_id == 1
+        assert grouped_matches[2][0].player_2_id == 4
+        assert grouped_matches[2][1].player_1_id == 2
+        assert grouped_matches[2][1].player_2_id == 3
+
+        # Round 3
+        assert grouped_matches[3][0].player_1_id == 1
+        assert grouped_matches[3][0].player_2_id == 3
+        assert grouped_matches[3][1].player_1_id == 4
+        assert grouped_matches[3][1].player_2_id == 2
+
+        assert len(grouped_matches) == 3
+        assert len(grouped_matches[1]) == 2
+        assert len(grouped_matches[2]) == 2
+        assert len(grouped_matches[3]) == 2
+
+    @pytest.mark.asyncio
+    async def test_even_rounds_odd_players(self, draft_odd_players_with_rounds: Draft, mock_db: AsyncMock) -> None:
+        player_ids = [player.player_id for player in draft_odd_players_with_rounds.draft_players]
+        player_ids.append(None)
+
+        matches = await generate_matches(draft_odd_players_with_rounds.rounds, player_ids, mock_db)
+        grouped_matches = self.group_matches_by_round(matches)
+
+        # Round 1
+        assert grouped_matches[1][0].player_1_id == 1
+        assert grouped_matches[1][0].player_2_id == 2
+        assert grouped_matches[1][1].player_1_id == 3
+        assert grouped_matches[1][1].player_2_id == 4
+
+        # Round 2
+        assert grouped_matches[2][0].player_1_id == 1
+        assert grouped_matches[2][0].player_2_id == 4
+        assert grouped_matches[2][1].player_1_id == 3
+        assert grouped_matches[2][1].player_2_id == 5
+
+        # Round 3
+        assert grouped_matches[3][0].player_1_id == 4
+        assert grouped_matches[3][0].player_2_id == 5
+        assert grouped_matches[3][1].player_1_id == 2
+        assert grouped_matches[3][1].player_2_id == 3
+
+        # Round 4
+        assert grouped_matches[4][0].player_1_id == 1
+        assert grouped_matches[4][0].player_2_id == 5
+        assert grouped_matches[4][1].player_1_id == 4
+        assert grouped_matches[4][1].player_2_id == 2
+
+        # Round 5
+        assert grouped_matches[5][0].player_1_id == 1
+        assert grouped_matches[5][0].player_2_id == 3
+        assert grouped_matches[5][1].player_1_id == 5
+        assert grouped_matches[5][1].player_2_id == 2
+
+        assert len(grouped_matches) == 5
+        assert len(grouped_matches[1]) == 2
+        assert len(grouped_matches[2]) == 2
+        assert len(grouped_matches[3]) == 2
+        assert len(grouped_matches[4]) == 2
+        assert len(grouped_matches[5]) == 2
