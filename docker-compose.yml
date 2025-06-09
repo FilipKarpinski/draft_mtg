@@ -36,7 +36,7 @@ services:
     build: .
     volumes:
       - .:/code
-    command: pytest
+    command: uv run pytest
 
 volumes:
   postgres_data:
