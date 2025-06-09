@@ -14,7 +14,7 @@ from app.db.database import get_db
 router = APIRouter(prefix="/users", tags=["users"])
 
 
-@router.post("/")
+@router.post("")
 async def create_user(user: UserCreate, db: AsyncSession = Depends(get_db)) -> UserBase:
     db_user = User(
         email=user.email,
@@ -32,7 +32,7 @@ async def create_user(user: UserCreate, db: AsyncSession = Depends(get_db)) -> U
         raise HTTPException(status_code=400, detail="Email already registered") from err
 
 
-@router.get("/", response_model=list[UserBase])
+@router.get("", response_model=list[UserBase])
 async def list_users(
     pagination: PaginationParams = Depends(get_pagination_params),
     db: AsyncSession = Depends(get_db),

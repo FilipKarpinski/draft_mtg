@@ -17,7 +17,7 @@ from app.db.database import get_db
 router = APIRouter(prefix="/drafts", tags=["drafts"])
 
 
-@router.post("/")
+@router.post("")
 async def create_draft(
     draft: DraftCreate, db: AsyncSession = Depends(get_db), _: User = Depends(get_current_active_user)
 ) -> DraftFull:
@@ -93,7 +93,7 @@ async def read_draft(draft_id: int, db: AsyncSession = Depends(get_db)) -> Draft
     return DraftFull.model_validate(db_draft)
 
 
-@router.get("/", response_model=list[DraftList])
+@router.get("", response_model=list[DraftList])
 async def list_drafts(
     pagination: PaginationParams = Depends(get_pagination_params), db: AsyncSession = Depends(get_db)
 ) -> Any:

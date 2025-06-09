@@ -15,7 +15,7 @@ from app.db.database import get_db
 router = APIRouter(prefix="/players", tags=["players"])
 
 
-@router.post("/")
+@router.post("")
 async def create_player(
     player: PlayerCreate, db: AsyncSession = Depends(get_db), _: User = Depends(get_current_active_user)
 ) -> PlayerSchema:
@@ -30,7 +30,7 @@ async def create_player(
         raise HTTPException(status_code=400, detail="Player name already exists") from err
 
 
-@router.get("/", response_model=list[PlayerSchema])
+@router.get("", response_model=list[PlayerSchema])
 async def list_players(
     pagination: PaginationParams = Depends(get_pagination_params), db: AsyncSession = Depends(get_db)
 ) -> Any:
