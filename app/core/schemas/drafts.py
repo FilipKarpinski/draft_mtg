@@ -23,6 +23,8 @@ class DraftList(DraftBase):
 
 class DraftFull(BaseModel):
     id: int
+    name: str
+    date: date
     rounds: List["RoundSchema"] = []
     draft_players: List["DraftPlayerSchema"] = []
 

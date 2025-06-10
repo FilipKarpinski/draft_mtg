@@ -35,7 +35,7 @@ async def populate_draft(draft: Draft, db: AsyncSession) -> Draft:
     draft_players = sorted(draft.draft_players, key=lambda x: x.order or float("inf"))
     player_ids = [dp.player_id for dp in draft_players]
 
-    if len(player_ids) % 2 != 0:
+    if len(player_ids) > 1 and len(player_ids) % 2 != 0:
         # Add a dummy player for bye if odd number of players
         player_ids.append(None)
 

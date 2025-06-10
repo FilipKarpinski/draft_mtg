@@ -1,3 +1,4 @@
+from collections import defaultdict
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -7,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.models import User
 from app.auth.utils import get_current_active_user
-from app.core.models import Player
+from app.core.models import DraftPlayer, Player
 from app.core.schemas.players import PlayerCreate, PlayerSchema
 from app.core.utils.pagination import PaginationParams, get_pagination_params
 from app.db.database import get_db
@@ -88,3 +89,16 @@ async def delete_player(
     await db.delete(db_player)
     await db.commit()
     return {"message": "Player deleted successfully"}
+
+
+@router.get("/{player_id}/placements")
+async def get_player_placements(player_id: int, db: AsyncSession = Depends(get_db)) -> dict[int, int]:
+    result = await db.execute(select(DraftPlayer).filter(DraftPlayer.player_id == player_id))
+    players_drafts = result.scalars().all()
+    if players_drafts is None:
+        raise HTTPException(status_code=404, detail="Player not found")
+    
+    placement_dict = defaultdict(int)
+    for draft in players_drafts:
+        placement_dict[draft.final_place] += 1
+    return placement_dict
