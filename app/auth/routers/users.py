@@ -32,6 +32,34 @@ async def create_user(user: UserCreate, db: AsyncSession = Depends(get_db)) -> U
         raise HTTPException(status_code=400, detail="Email already registered") from err
 
 
+@router.post("/create-first-admin")
+async def create_first_admin(user: UserCreate, db: AsyncSession = Depends(get_db)) -> UserBase:
+    """Create the first admin user. Only works if no admin users exist yet."""
+    # Check if any admin users already exist
+    result = await db.execute(select(User).filter(User.is_admin == True))
+    existing_admin = result.scalar()
+
+    if existing_admin:
+        raise HTTPException(
+            status_code=400, detail="Admin user already exists. Use the regular user creation endpoint."
+        )
+
+    db_user = User(
+        email=user.email,
+        hashed_password=get_password_hash(user.password),
+        is_active=True,  # First admin is automatically active
+        is_admin=True,  # This user becomes an admin
+    )
+    db.add(db_user)
+    try:
+        await db.commit()
+        await db.refresh(db_user)
+        return UserBase.model_validate(db_user)
+    except IntegrityError as err:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail="Email already registered") from err
+
+
 @router.get("", response_model=list[UserBase])
 async def list_users(
     pagination: PaginationParams = Depends(get_pagination_params),
@@ -83,6 +111,21 @@ async def update_user(
     await db.commit()
     await db.refresh(db_user)
     return UserBase.model_validate(db_user)
+
+
+@router.post("/{user_id}/promote-to-admin")
+async def promote_user_to_admin(
+    user_id: int, db: AsyncSession = Depends(get_db), _: User = Depends(get_current_admin_user)
+) -> dict[str, str]:
+    """Promote an existing user to admin. Requires admin privileges."""
+    result = await db.execute(select(User).filter(User.id == user_id))
+    db_user = result.scalar()
+    if db_user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    db_user.is_admin = True
+    await db.commit()
+    return {"message": "User promoted to admin successfully"}
 
 
 @router.delete("/{user_id}")

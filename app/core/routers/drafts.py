@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.auth.models import User
-from app.auth.utils import get_current_active_user
+from app.auth.utils import get_current_active_user, get_current_admin_user
 from app.core.models import Draft, DraftPlayer, Match, Round
 from app.core.schemas.drafts import DraftCreate, DraftFull, DraftList
 from app.core.utils.drafts import calculate_points, populate_draft
@@ -106,7 +106,7 @@ async def list_drafts(
 
 @router.delete("/{draft_id}")
 async def delete_draft(
-    draft_id: int, db: AsyncSession = Depends(get_db), _: User = Depends(get_current_active_user)
+    draft_id: int, db: AsyncSession = Depends(get_db), _: User = Depends(get_current_admin_user)
 ) -> dict[str, str]:
     result = await db.execute(select(Draft).filter(Draft.id == draft_id))
     db_draft = result.scalar()
