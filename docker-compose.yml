@@ -11,11 +11,11 @@ services:
       db:
         condition: service_healthy
     volumes:
-      - .:/code
+      - ./app:/code/app
     command: >
       sh -c "
-        cd app && uv run alembic upgrade head &&
-        cd .. && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+        uv run alembic upgrade head &&
+        uv run uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
 
   db:
     image: postgres:16
@@ -35,7 +35,7 @@ services:
     profiles: ["test"]
     build: .
     volumes:
-      - .:/code
+      - ./app:/code/app
     command: uv run pytest
 
 volumes:
