@@ -97,7 +97,7 @@ async def read_draft(draft_id: int, db: AsyncSession = Depends(get_db)) -> Draft
 async def list_drafts(
     pagination: PaginationParams = Depends(get_pagination_params), db: AsyncSession = Depends(get_db)
 ) -> Any:
-    stmt = select(Draft).offset(pagination.skip).limit(pagination.limit)
+    stmt = select(Draft).offset(pagination.skip).limit(pagination.limit).order_by(Draft.date.desc())
 
     result = await db.execute(stmt)
     drafts = result.scalars().all()
