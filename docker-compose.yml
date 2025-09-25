@@ -16,6 +16,8 @@ services:
       sh -c "
         uv run alembic upgrade head &&
         uv run uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
+    networks:
+      - draft_mtg_network
 
   db:
     image: postgres:16
@@ -25,11 +27,15 @@ services:
       - .env
     ports:
       - "${POSTGRES_PORT}:5432"
+    restart: always
+    networks:
+      - draft_mtg_network
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER}" ]
-      interval: 5s
+      interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
   
   test:
     profiles: ["test"]
@@ -37,6 +43,12 @@ services:
     volumes:
       - ./app:/code/app
     command: uv run pytest
+    networks:
+      - draft_mtg_network
+
+networks:
+  draft_mtg_network:
+    name: draft_mtg_network
 
 volumes:
   postgres_data:
