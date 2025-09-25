@@ -12,7 +12,6 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_SECRET_KEY: str = "anotherverysecretkey"  # Different key for refresh tokens
 
     # Database settings
-    POSTGRES_HOST: str = "db"
     POSTGRES_USER: str = "postgres"
     POSTGRES_PASSWORD: str = "postgres"
     POSTGRES_PORT: str = "5432"
@@ -33,7 +32,7 @@ class Settings(BaseSettings):
 
     @property
     def DATABASE_URL(self) -> str:
-        return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@db:5432/{self.POSTGRES_DB}"
 
     model_config = SettingsConfigDict(
         env_file=".env",
